@@ -1,0 +1,4 @@
+CREATE TEMPORARY UNLOGGED TABLE IF NOT EXISTS idmap (
+  name text PRIMARY KEY;
+  value bytea
+) WITH (OIDS=FALSE);
