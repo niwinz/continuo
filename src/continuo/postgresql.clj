@@ -13,24 +13,21 @@
 ;; limitations under the License.
 
 (ns continuo.postgresql
+  "A postgresql transactor engine."
   (:require [promissum.core :as p]
             [suricatta.core :as sc]
-            [continuo.executor :as exec]
-            [continuo.database :as db]
-            [continuo.protocols :as p]
+            [continuo.impl :as impl]
             [continuo.util :as util]
-            [continuo.postgresql.bootstrap :as bootstrap])
-  (:import java.net.URI))
+            [continuo.postgresql.bootstrap :as bootstrap]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Types
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord Transactor [context]
-  p/ITransactorInternal
+  impl/ITransactorInternal
   (-initialize [it]
-    ;; (exec/submit #(bootstrap/initialize it)))
-    )
+    (bootstrap/initialize it))
   (-create [it]
     (bootstrap/create it)))
 
@@ -38,7 +35,7 @@
 ;; Connection Management
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod db/connect :postgresql
-  [^URI uri options]
+(defmethod impl/connect :postgresql
+  [uri options]
   (let [options (merge options (util/parse-params uri))]
     (Transactor. (bootstrap/connect options))))
