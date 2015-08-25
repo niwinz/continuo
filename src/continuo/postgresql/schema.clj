@@ -14,6 +14,7 @@
 
 (ns continuo.postgresql.schema
   (:require [suricatta.core :as sc]
+            [taoensso.nippy :as nippy]
             [continuo.util.template :as tmpl]
             [continuo.executor :as exec]))
 
@@ -63,38 +64,50 @@
 
 (defmethod compile-op :db/add
   [[_ attrname props]]
-  (let [attr (normalize-attrname attrname)
-        sql (generate-create-sql (assoc props :attr attr))]
-    (fn [execute]
-      (execute sql))))
+  (let [attr (normalize-attrname attrname)]
+    (generate-create-sql (assoc props :attr attr))))
 
 (defmethod compile-op :db/drop
   [[_ attrname]]
-  (let [attr (normalize-attrname attrname)
-        sql (generate-drop-sql attr)]
-    (fn [execute]
-      (execute sql))))
+  (let [attr (normalize-attrname attrname)]
+    (generate-drop-sql attr)))
 
 (defmethod compile-op :default
   [[op]]
   (throw (ex-info (format "The schema operation %s is not supported." op) {})))
 
-(defn compile-schema
+(defn- compile-schema
   "Compile a schema entries."
   [schema]
-  (reduce (fn [acc v]
-            (fn [execute]
-              (let [callable (compile-op v)]
-                (acc execute)
-                (callable execute))))
-          identity
-          schema))
+  (reduce #(conj %1 [(compile-op %2)]) [] schema))
+
+(defn- schema->facts
+  "Normalize the schema values into facts like data."
+  [schema]
+  (letfn [(reducer [acc v]
+            (conj acc (case (count v)
+                        3 v
+                        2 (conj v nil))))]
+    (reduce func [] schema))
+
+;; (defn get-transact-sql
+;;   [schema]
+;;   (let [data (nippy/freeze schemas)]
+;;     [["INSERT INTO txlog VALUES (?,?,?,?,?);"]]))
 
 ;; (defn execute-schema
 ;;   [schema ]
-;;   {:pre [(seq schema)]}
 ;;   (csch (fn [sql]
 ;;             (println "EXECUTING:" sql)))))
+
+(defn run-schema
+  [conn schema]
+  {:pre [(seq schema)]}
+  (let [ctx (:context conn)]
+        locksql (get-lock-sql)
+        txsql (get-transact-sql schema)
+        opsql (compile-schema schema)]
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utils
