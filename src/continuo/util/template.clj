@@ -25,6 +25,7 @@
 ;; DOCUMENTATION: http://mustache.github.io/mustache.5.html
 
 (def ^:private
+  ^DefaultMustacheFactory
   +mustache-factory+ (DefaultMustacheFactory.))
 
 (defn- render
@@ -34,17 +35,19 @@
       (.execute template *out* scope))))
 
 (defn render-string
+  "Render string as mustache template."
   ([^String template]
-   (render template {}))
+   (render-string template {}))
   ([^String template context]
    (let [reader (StringReader. template)
          template (.compile +mustache-factory+ reader "example")]
      (render template context))))
 
 (defn render-resource
+  "Load a file from the class path and render
+  it using mustache template."
   ([^String path]
-   (render template {}))
+   (render-resource path {}))
   ([^String path context]
-   (let [reader (StringReader. template)
-         template (.compile +mustache-factory+ path)]
+   (let [template (.compile +mustache-factory+ path)]
      (render template context))))
