@@ -1,5 +1,6 @@
 CREATE TYPE partition AS ENUM ('system', 'schema', 'user');
 
+
 -- A table that will store the whole transaction log
 -- of the database.
 CREATE TABLE IF NOT EXISTS txlog (
@@ -29,8 +30,42 @@ CREATE TABLE IF NOT EXISTS schemaview (
 -- A table that will stores all the entities
 CREATE TABLE IF NOT EXISTS entity (
   id uuid PRIMARY KEY,
+  part partition,
   attributes text[],
   created_at timestamptz default now(),
   modified_at timestamptz
 ) WITH (OIDS=FALSE);
 
+-- Schema related attributes tables
+
+CREATE TABLE IF NOT EXISTS db_schema__ident (
+  eid uuid PRIMARY KEY,
+  txid bigint,
+  created_at timestamptz default now(),
+  modified_at timestamptz,
+  content bytea
+) WITH (OIDS=FALSE);
+
+CREATE TABLE IF NOT EXISTS db_schema__unique (
+  eid uuid PRIMARY KEY,
+  txid bigint,
+  created_at timestamptz default now(),
+  modified_at timestamptz,
+  content boolean
+) WITH (OIDS=FALSE);
+
+CREATE TABLE IF NOT EXISTS db_schema__index (
+  eid uuid PRIMARY KEY,
+  txid bigint,
+  created_at timestamptz default now(),
+  modified_at timestamptz,
+  content bytea
+) WITH (OIDS=FALSE);
+
+CREATE TABLE IF NOT EXISTS db_schema__index (
+  eid uuid PRIMARY KEY,
+  txid bigint,
+  created_at timestamptz default now(),
+  modified_at timestamptz,
+  content bytea
+) WITH (OIDS=FALSE);
