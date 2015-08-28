@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS entity (
 
 -- Schema related attributes tables
 
-CREATE TABLE IF NOT EXISTS db_schema__ident (
+CREATE TABLE IF NOT EXISTS schema_db__ident (
   eid uuid PRIMARY KEY,
   txid bigint,
   created_at timestamptz default now(),
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS db_schema__ident (
   content bytea
 ) WITH (OIDS=FALSE);
 
-CREATE TABLE IF NOT EXISTS db_schema__unique (
+CREATE TABLE IF NOT EXISTS schema_db__unique (
   eid uuid PRIMARY KEY,
   txid bigint,
   created_at timestamptz default now(),
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS db_schema__unique (
   content boolean
 ) WITH (OIDS=FALSE);
 
-CREATE TABLE IF NOT EXISTS db_schema__index (
+CREATE TABLE IF NOT EXISTS schema_db__index (
   eid uuid PRIMARY KEY,
   txid bigint,
   created_at timestamptz default now(),
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS db_schema__index (
   content bytea
 ) WITH (OIDS=FALSE);
 
-CREATE TABLE IF NOT EXISTS db_schema__index (
+CREATE TABLE IF NOT EXISTS schema_db__index (
   eid uuid PRIMARY KEY,
   txid bigint,
   created_at timestamptz default now(),
