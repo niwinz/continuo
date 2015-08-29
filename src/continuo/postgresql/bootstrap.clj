@@ -22,26 +22,35 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- table-installed?
-  [ctx tablename]
+  [conn tablename]
   (let [sql (format "SELECT to_regclass('public.%s')" tablename)
-        rst (sc/fetch-one ctx sql)]
+        rst (sc/fetch-one conn sql)]
     (boolean (first rst))))
 
 (defn- installed?
   "Check if the main database layour is already installed."
-  [ctx]
-  (every (partial check ctx) ["txlog", "properties", "schemaview", "entity"]))
+  [conn]
+  (every (partial check conn) ["txlog", "properties", "schemaview", "entity"]))
 
 (defn create'
-  [ctx]
-  (when-not (installed? ctx)
+  [conn]
+  (when-not (installed? conn)
     (let [bsql (slurp (io/resource "persistence/postgresql/bootstrap.sql"))]
-      (sc/execute ctx bsql))))
+      (sc/execute conn bsql))))
 
 (defn create
-  [conn]
-  (let [ctx (:context conn)]
+  [context]
+  (let [conn (.-connection context)]
     (exec/submit #(sc/atomic-apply ctx create'))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Database Initialization
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn initialize
+  [context]
+  ;; TODO
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection Management
