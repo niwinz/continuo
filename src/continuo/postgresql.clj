@@ -24,7 +24,7 @@
 ;; Types
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord Transactor [context]
+(deftype Transactor [connection schema]
   impl/ITransactorInternal
   (-initialize [it]
     (bootstrap/initialize it))
@@ -37,5 +37,7 @@
 
 (defmethod impl/connect :postgresql
   [uri options]
-  (let [options (merge options (util/parse-params uri))]
-    (Transactor. (bootstrap/connect options))))
+  (let [options (merge options (util/parse-params uri))
+        connection (bootstrap/connec options)
+        schema {}]
+    (Transactor. connection schema)))
