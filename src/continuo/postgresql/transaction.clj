@@ -95,7 +95,7 @@
 
 (defn compile-txop
   [context [partition facts]]
-  (TxOperation. partition (codecs/data->bytes facts))
+  (TxOperation. partition (codecs/data->bytes facts)))
 
 (defn compile-ops
   [context partition facts]
