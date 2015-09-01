@@ -6,7 +6,7 @@
   :javac-options ["-target" "1.8" "-source" "1.8" "-Xlint:-options"]
   :dependencies [[org.clojure/clojure "1.7.0" :scope "provided"]
                  [com.taoensso/nippy "2.9.0"]
-                 [funcool/cats "0.6.1"]
+                 [funcool/cats "1.0.0-SNAPSHOT"]
                  [funcool/cuerdas "0.6.0"]
                  [funcool/promissum "0.2.0"]
                  [funcool/suricatta "0.3.1"]
