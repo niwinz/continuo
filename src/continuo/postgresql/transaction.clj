@@ -107,7 +107,8 @@
   "Given an connection and seq of operation objects,
   execute them in serie."
   [conn operations]
-  (run! #(-execute % conn) operations))
+  (let [txid (get-next-txid conn)]
+    (run! #(-execute % conn txid) operations))
 
 (defn run-in-tx
   [conn func]
@@ -116,7 +117,6 @@
     (func conn)))
 
 (defn transact*
-  {:internal true}
   [context partition facts]
   (let [ops (compile-ops context partition facts)
         conn (.-connection context)]
