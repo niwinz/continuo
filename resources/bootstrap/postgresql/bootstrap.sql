@@ -17,16 +17,6 @@ CREATE TABLE IF NOT EXISTS properties (
   value bytea
 ) WITH (OIDS=FALSE);
 
--- A table that represents the materialized view of
--- the current applied schema.
-CREATE TABLE IF NOT EXISTS schemaview (
-  name text PRIMARY KEY,
-  opts bytea,
-  created_at timestamptz default now(),
-  modified_at timestamptz default now(),
-  txid bigint references txlog(id)
-) WITH (OIDS=FALSE);
-
 -- A table that will stores all the entities
 CREATE TABLE IF NOT EXISTS entity (
   id uuid PRIMARY KEY,
