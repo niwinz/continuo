@@ -16,11 +16,19 @@
   (:require [suricatta.core :as sc]
             [cuerdas.core :as str]))
 
+(defprotocol IAttribute
+  (-normalized-name [_ partition] "Get normalized attribute name."))
 
 (deftype Attribute [name type opts]
   clojure.lang.Named
   (getNamespace [_] (namespace name))
-  (getName [_] (clojure.core/name name)))
+  (getName [_] (clojure.core/name name))
+
+  IAttribute
+  (-normalized-name [_ partition]
+    (let [ns (namespace attr)
+          nm (name attr)]
+      (str/lower (str partition "_" ns "__" nm)))))
 
 (defn attribute?
   [attr]
