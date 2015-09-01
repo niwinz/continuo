@@ -15,7 +15,7 @@
 (ns continuo.postgresql.transaction
   (:require [suricatta.core :as sc]
             [taoensso.nippy :as nippy]
-            [continuo.postgresql.schema :as schema]
+            [continuo.postgresql.attributes :as attrs]
             [continuo.util.template :as tmpl]
             [continuo.util.codecs :as codecs]
             [continuo.executor :as exec]))
@@ -54,7 +54,6 @@
           sqlv  [sql eid txid value]]
       (sc/execute conn sqlv))))
 
-
 (deftype RetractOperation [partition attr value]
   IOperation
   (-execute [_ conn txid]
@@ -88,7 +87,7 @@
   the appropiate default materialized view."
   [context partition [op eid attrname value]]
   ;; resolve-attr :: context -> string -> Attribute
-  (let [attr (resolve-attr context attrname)]
+  (let [attr (attrs/resolve-attr context attrname)]
     (case op
       :db/add (AddOperation. partition eid attr value)
       :db/retract (RetractOperation. partition eid attr value)
