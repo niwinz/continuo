@@ -64,14 +64,14 @@
           sqlv  [sql value eid]]
       (sc/execute conn sqlv))))
 
-(deftype DropOperation [partition attr value]
-  IOperation
-  (-execute [_ conn txid]
-    (let [table (attrs/-normalized-name attr partition)
-          tmpl  "DELTE FROM {{table}} WHERE eid = ?"
-          sql   (tmpl/render-string tmpl {:table table})
-          sqlv  [sql eid]]
-      (sc/execute conn sqlv))))
+;; (deftype DropOperation [partition attr value]
+;;   IOperation
+;;   (-execute [_ conn txid]
+;;     (let [table (attrs/-normalized-name attr partition)
+;;           tmpl  "DELTE FROM {{table}} WHERE eid = ?"
+;;           sql   (tmpl/render-string tmpl {:table table})
+;;           sqlv  [sql eid]]
+;;       (sc/execute conn sqlv))))
 
 (deftype TxOperation [partition data]
   IOperation
@@ -90,8 +90,8 @@
   (let [attr (attrs/resolve-attr context attrname)]
     (case op
       :db/add (AddOperation. partition eid attr value)
-      :db/retract (RetractOperation. partition eid attr value)
-      :db/drop (DropOperation. partition eid attr value))))
+      :db/retract (RetractOperation. partition eid attr value))))
+      ;; :db/drop (DropOperation. partition eid attr value))))
 
 (defn compile-txop
   [context [partition facts]]
