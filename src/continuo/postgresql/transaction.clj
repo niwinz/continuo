@@ -125,3 +125,7 @@
 (defn transact
   [context facts]
   (transact* context "user" facts))
+
+(defn schema-transact
+  [context facts]
+  (transact* context "schema" facts))
