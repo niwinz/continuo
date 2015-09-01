@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS properties (
 CREATE TABLE IF NOT EXISTS entity (
   id uuid PRIMARY KEY,
   part partition,
-  attributes text[],
+  attributes bytea,
   created_at timestamptz default now(),
   modified_at timestamptz
 ) WITH (OIDS=FALSE);
