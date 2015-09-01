@@ -34,60 +34,52 @@
   [attr]
   (instance? Attribute attr))
 
+(defn schema-attribute?
+  [attr]
+  (and (attribute? attr)
+       (= (namespace attr) "db")))
+
 (defn attribute
-  [name type opts]
-  (with-meta (Attribute. name type opts)
-    {::type ::standard}))
-
-;; (defprotocol IAttribute
-;;   (-create-table-sql [_] "Generate a sql for create table ddl.")
-;;   (-table-name [_] "Generate a normalized table name for attribute."))
-
-(declare attribute?)
-
-(defn- get-table-name
-  [attr]
-  {:pre [(attribute?? attr)]}
-  (let [ns (namespace attr)
-        nm (name attr)]
-    (str prefix "_" ns "__" nm)))
-
-(defn- get-create-table-sql
-  [attr]
-  {:pre [(attr? attr)]}
-  (let [tablename (get-table-name attr)
-        typename (types/-sql-typename (.-type attr))
-        template (str "CREATE TABLE {{ name }} ("
-                      "  eid uuid PRIMARY KEY,"
-                      "  txid bigint,"
-                      "  created_at timestamptz default now(),"
-                      "  modified_at timestamptz,"
-                      "  content {{ type }}"
-                      ") WITH (OIDS=FALSE);")]
-    (tmpl/render-string template {:name tablename
-                                  :type typename})))
-(defn special-attrname?
-  [attrname]
-  {:pre [(keyword? attrname)]}
-  (= (namespace attrname) "db"))
+  ([name type]
+   (attribute name type {}))
+  ([name type opts]
+   (Attribute. name type opts)))
 
 (def ^:private
   +builtin-attributes+
-  {:db/ident (Attribute. "db" :db/ident :continuo/string {:unique true})})
+  {:db/ident (attribute :db/ident :string {:unique true})
+   :db/unique (attribute :db/unique :boolean {})})
 
 (defn resolve-attr
   "Given a context and the attribute name
   return the attribute definition."
   [context attrname]
   {:pre [(keyword? attrname)]}
-  (let [schema (.-schema context)]
-    ;; TODO: do stuff
-    ))
+  (if (schema-attribute? attrname)
+    (get +builtin-attributes+ attrname)
+    (let [schema (.-schema context)]
+      ;; TODO: do stuff
+      )))
 
-(defn generate-drop-sql
-  "Generate a valid DDL operation for create the attribute
-  table depending on the attribute type."
-  [attr]
-  (let [sql (str "DROP TABLE {{ attr }};")]
-    (tmpl/render-string sql {:attr attr})))
+;; (defn- get-create-table-sql
+;;   [attr]
+;;   {:pre [(attr? attr)]}
+;;   (let [tablename (get-table-name attr)
+;;         typename (types/-sql-typename (.-type attr))
+;;         template (str "CREATE TABLE {{ name }} ("
+;;                       "  eid uuid PRIMARY KEY,"
+;;                       "  txid bigint,"
+;;                       "  created_at timestamptz default now(),"
+;;                       "  modified_at timestamptz,"
+;;                       "  content {{ type }}"
+;;                       ") WITH (OIDS=FALSE);")]
+;;     (tmpl/render-string template {:name tablename
+;;                                   :type typename})))
+
+;; (defn generate-drop-sql
+;;   "Generate a valid DDL operation for create the attribute
+;;   table depending on the attribute type."
+;;   [attr]
+;;   (let [sql (str "DROP TABLE {{ attr }};")]
+;;     (tmpl/render-string sql {:attr attr})))
 
