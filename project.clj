@@ -9,9 +9,10 @@
                  [funcool/cats "1.0.0-SNAPSHOT"]
                  [funcool/cuerdas "0.6.0"]
                  [funcool/promissum "0.2.0"]
-                 [funcool/suricatta "0.3.1"]
-                 [hikari-cp "1.3.0"]
-                 [com.cognitect/transit-clj "0.8.281"]
+                 [funcool/suricatta "0.4.0-SNAPSHOT"]
+                 [com.h2database/h2 "1.4.188"]
+                 [org.postgresql/postgresql "9.4-1202-jdbc42"]
+                 [hikari-cp "1.3.1"]
                  [cheshire "5.5.0"]
                  [com.github.spullara.mustache.java/compiler "0.9.0"]]
   :plugins [[lein-ancient "0.6.7"]])
