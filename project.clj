@@ -14,7 +14,7 @@
                  [org.postgresql/postgresql "9.4-1202-jdbc42"]
                  [hikari-cp "1.3.1"]
                  [cheshire "5.5.0"]
-                 [com.github.spullara.mustache.java/compiler "0.9.0"]]
+                 [com.github.spullara.mustache.java/compiler "0.9.1"]]
   :plugins [[lein-ancient "0.6.7"]])
   ;; :profiles {:dev {:global-vars {*warn-on-reflection* false}}})
 
