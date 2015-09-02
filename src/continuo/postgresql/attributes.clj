@@ -1,4 +1,4 @@
-;; Copyright 2015 Andrey Antukh <niwi@niwi.nz>
+;; copyright 2015 Andrey Antukh <niwi@niwi.nz>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License")
 ;; you may not use this file except in compliance with the License.
@@ -19,16 +19,22 @@
 (defprotocol IAttribute
   (-normalized-name [_ partition] "Get normalized attribute name."))
 
+(declare normalize-attrname)
+
 (deftype Attribute [name type opts]
   clojure.lang.Named
   (getNamespace [_] (namespace name))
   (getName [_] (clojure.core/name name))
 
   IAttribute
-  (-normalized-name [_ partition]
-    (let [ns (namespace attr)
-          nm (name attr)]
-      (str/lower (str partition "_" ns "__" nm)))))
+  (-normalized-name [it partition]
+    (normalize-attrname it partition)))
+
+(defn normalize-attrname
+  [^clojure.lang.Named attr partition]
+  (let [ns (namespace attr)
+        nm (name attr)]
+    (str/lower (str partition "_" ns "__" nm))))
 
 (defn attribute?
   [attr]
@@ -60,26 +66,3 @@
     (let [schema (.-schema context)]
       ;; TODO: do stuff
       )))
-
-;; (defn- get-create-table-sql
-;;   [attr]
-;;   {:pre [(attr? attr)]}
-;;   (let [tablename (get-table-name attr)
-;;         typename (types/-sql-typename (.-type attr))
-;;         template (str "CREATE TABLE {{ name }} ("
-;;                       "  eid uuid PRIMARY KEY,"
-;;                       "  txid bigint,"
-;;                       "  created_at timestamptz default now(),"
-;;                       "  modified_at timestamptz,"
-;;                       "  content {{ type }}"
-;;                       ") WITH (OIDS=FALSE);")]
-;;     (tmpl/render-string template {:name tablename
-;;                                   :type typename})))
-
-;; (defn generate-drop-sql
-;;   "Generate a valid DDL operation for create the attribute
-;;   table depending on the attribute type."
-;;   [attr]
-;;   (let [sql (str "DROP TABLE {{ attr }};")]
-;;     (tmpl/render-string sql {:attr attr})))
-
