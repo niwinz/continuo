@@ -37,13 +37,13 @@
      (-> (.getQuery uri)
          (util/querystring->map)
          (keywordize-keys))
-     {:server-name host}
+     {:host host}
      (when-not (empty? userinfo)
        (let [[user password] (str/split userinfo ":")]
          {:username user
           :password password}))
      (when port
-       {:port-number port}))))
+       {:port port}))))
 
 (defn str->bytes
   "Convert string to java bytes array"
