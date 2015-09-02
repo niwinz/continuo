@@ -38,6 +38,6 @@
 (defmethod impl/connect :postgresql
   [uri options]
   (let [options (merge options (util/parse-params uri))
-        connection (bootstrap/connec options)
+        connection (bootstrap/connect options)
         schema {}]
     (Transactor. connection schema)))
