@@ -43,7 +43,11 @@
 (defprotocol IOperation
   (-execute [_ conn txid] "Execute the operation."))
 
-(deftype AddOperation [partition attr value]
+(deftype EntityOperation [partition eid]
+  IOperation
+  (-execute [_ conn txid]))
+
+(deftype AddOperation [partition eid attr value]
   IOperation
   (-execute [_ conn txid]
     (let [table (attrs/-normalized-name attr partition)
@@ -54,7 +58,7 @@
           sqlv  [sql eid txid value]]
       (sc/execute conn sqlv))))
 
-(deftype RetractOperation [partition attr value]
+(deftype RetractOperation [partition eid attr value]
   IOperation
   (-execute [_ conn txid]
     (let [table (attrs/-normalized-name attr partition)
@@ -116,16 +120,8 @@
     ;; TODO: exclusive share lock
     (func conn)))
 
-(defn transact*
-  [context partition facts]
-  (let [ops (compile-ops context partition facts)
-        conn (.-connection context)]
-    (run-in-tx conn #(run-tx % ops))))
-
 (defn transact
   [context facts]
-  (transact* context "user" facts))
-
-(defn schema-transact
-  [context facts]
-  (transact* context "schema" facts))
+  (let [ops (compile-ops context "user" facts)
+        conn (.-connection context)]
+    (run-in-tx conn #(run-tx % ops))))
