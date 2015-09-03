@@ -35,4 +35,4 @@
   [typename]
   {:pre [(keyword? typename)]}
   (case typename
-    :continuo/string (TString.)))
+    :string (TString.)))

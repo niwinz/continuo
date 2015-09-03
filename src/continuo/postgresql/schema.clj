@@ -14,43 +14,60 @@
 
 (ns continuo.postgresql.attributes
   (:require [suricatta.core :as sc]
-            [cuerdas.core :as str]))
+            [cuerdas.core :as str]
+            [continuo.postgresql.attributes :as attrs]
+            [continuo.postgresql.types :as types]))
 
 (comment
-  (ct/run-schema! db [[:add :user/username {:unique true :type :text}]
-                      [:alter :user/age {:type :short}]
-                      [:rename :user/name :user/fullname]]))
+  (ct/run-schema! db [[:db/add :user/username {:unique true :type :text}]
+                      [:db/drop :user/name]]))
 
+(defmulti -execute-schema
+  "A polymorphic abstraction for build appropiate
+  layout transformation sql for the schema fact."
+  (fn [conn type & params] type))
 
-(defprotocol ISchemaOperation
-  (-execute [_ conn txid] "Execute the operation."))
+(defmethod -execute-schema :db/add
+  [conn _ ident opts]
+  (let [tablename (attrs/normalize-attrname ident "attrs")
+        typename (-> (types/lookup-type (:type opts))
+                     (types/-sql-typename))
+        sql (tmpl/render "postgresql/tmpl-schema-db-add.mustache"
+                         {:name tablename :type typename})]
+    (sc/execute conn [sql (codecs/data->bytes opts)])))
 
-(deftype AddOperation [ident opts]
-  ISchemaOperation
-  (-execute [_ conn]
-    (let [tablename (attrs/normalize-attrname ident "attrs")
-          typename (-> (types/lookup-type (:type opts))
-                       (types/-sql-typename))
-          template (str "CREATE TABLE {{ name }} ("
-                        "  eid uuid PRIMARY KEY,"
-                        "  txid bigint,"
-                        "  created_at timestamptz default now(),"
-                        "  modified_at timestamptz,"
-                        "  content {{ type }}"
-                        ") WITH (OIDS=FALSE);")]
-      (tmpl/render-string template {:name tablename
-                                    :type typename})))
-  (-rollback [_ conn]
-    (let [tablename (attrs/normalize-attrname ident "attrs")
-          sql (str "DROP TABLE IF EXISTS {{ name }};")]
-      (tmpl/render-string sql {:name tablename}))))
+(defmethod -execute-schema :db/drop
+  [conn _ ident]
+  (let [tablename (attrs/normalize-attrname ident "attrs")
+        template (str "DROP TABLE IF EXISTS {{ name }};")
+        sql (tmpl/render-string template {:name tablename})]
+    (sc/execute conn sql)))
+
+(defmethod -build-state-sql :db/add
+  [_ ident opts]
+  (let [sql ["INSERT INTO txlog (id, part, facts) VALUES (?,?,?)"
+               txid partition data]]
+      (sc/execute conn sql))))
+
 
 (defn compile-op
   [context [op ident opts]]
   (case op
     :db/add (AddOperation. ident opts)
-    :db/drop (DropOperation. ident opts)))
+    :db/drop (DropOperation. ident)))
 
 (defn run-schema
   [context schema]
-  (let [ops (compile-sch
+  (let [ops (map (partial compile-op context) schema)
+        conn (.-connection context)]
+    (ct/atomic conn
+      (run! (fn [items]
+              (-> (apply -create-schema-layout
+              (-execute op conn)
+              (catch Exception e
+                (if (satisfies? ISchemaOperationRollback op)
+                  (reduced (-rollback op conn))
+                  (throw e)))))
+          (compile-ops context schema))
+    (ct/atomic conn
+      (run! (fn [op] (-execute op conn)) ops))))

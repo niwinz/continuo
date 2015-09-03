@@ -1,0 +1,10 @@
+CREATE TABLE {{ name }} (
+  eid uuid PRIMARY KEY,
+  txid bigint,
+  created_at timestamptz default now(),
+  modified_at timestamptz,
+  content {{ type }}
+) WITH (OIDS=FALSE);
+
+INSERT INTO dbschema (ident, opts, modified_at)
+  VALUES ('{{ name }}', ?, now());
