@@ -15,7 +15,8 @@
 (ns continuo.util.template
   "A lightweight abstraction over mustache.java
   template engine."
-  (:require [clojure.walk :as walk])
+  (:require [clojure.walk :as walk]
+            [clojure.java.io :as io])
   (:import java.io.StringReader
            java.io.StringWriter
            java.util.HashMap
@@ -28,7 +29,7 @@
   ^DefaultMustacheFactory
   +mustache-factory+ (DefaultMustacheFactory.))
 
-(defn- render
+(defn- render*
   [^Mustache template context]
   (with-out-str
     (let [scope (HashMap. (walk/stringify-keys context))]
@@ -41,13 +42,12 @@
   ([^String template context]
    (let [reader (StringReader. template)
          template (.compile +mustache-factory+ reader "example")]
-     (render template context))))
+     (render* template context))))
 
-(defn render-resource
+(defn render
   "Load a file from the class path and render
   it using mustache template."
   ([^String path]
    (render-resource path {}))
   ([^String path context]
-   (let [template (.compile +mustache-factory+ path)]
-     (render template context))))
+   (render-string (slurp (io/resource path)) context)))
