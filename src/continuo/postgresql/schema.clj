@@ -39,35 +39,24 @@
 (defmethod -execute-schema :db/drop
   [conn _ ident]
   (let [tablename (attrs/normalize-attrname ident "attrs")
-        template (str "DROP TABLE IF EXISTS {{ name }};")
-        sql (tmpl/render-string template {:name tablename})]
+        sql (tmpl/render "postgresql/tmpl-schema-db-drop.mustache"
+                         {:name tablename})]
     (sc/execute conn sql)))
 
-(defmethod -build-state-sql :db/add
-  [_ ident opts]
+(defn -execute-transact
+  [conn txid data]
   (let [sql ["INSERT INTO txlog (id, part, facts) VALUES (?,?,?)"
-               txid partition data]]
-      (sc/execute conn sql))))
-
-
-(defn compile-op
-  [context [op ident opts]]
-  (case op
-    :db/add (AddOperation. ident opts)
-    :db/drop (DropOperation. ident)))
+             txid "schema" data]]
+    (sc/execute conn sql)))
 
 (defn run-schema
   [context schema]
   (let [ops (map (partial compile-op context) schema)
         conn (.-connection context)]
     (ct/atomic conn
-      (run! (fn [items]
-              (-> (apply -create-schema-layout
-              (-execute op conn)
-              (catch Exception e
-                (if (satisfies? ISchemaOperationRollback op)
-                  (reduced (-rollback op conn))
-                  (throw e)))))
-          (compile-ops context schema))
-    (ct/atomic conn
+      (let [txid (tx/get-next-txid conn)]
+        (run! #(apply -execute-schema conn %) schema)
+        (-execute-transact conn txid schema))
+
+
       (run! (fn [op] (-execute op conn)) ops))))

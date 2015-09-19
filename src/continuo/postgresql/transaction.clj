@@ -37,36 +37,50 @@
     (if (nil? lastid) 1 (inc lastid))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Transaction Identifier
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn hold-lock
+  ([conn] (hold-lock conn "txlog"))
+  ([conn tablename]
+   (as-> (format "LOCK TABLE %s IN ACCESS EXCLUSIVE MODE" tablename) sql
+     (sc/execute conn sql))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Facts processing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defprotocol IOperation
-  (-execute [_ conn txid] "Execute the operation."))
+(comment
+  (ct/transact db [[:db/add eid attrname attrvalue]
+                   [:db/retract eid attrname attrvalue]]))
 
-(deftype EntityOperation [partition eid]
-  IOperation
-  (-execute [_ conn txid]))
+(defmulti -apply-fact
+  (fn [_ _ [type]]
+    type))
 
-(deftype AddOperation [partition eid attr value]
-  IOperation
-  (-execute [_ conn txid]
-    (let [table (attrs/-normalized-name attr partition)
-          tmpl  (str "INSERT INTO {{table}} "
-                     "  (eid, txid, modified_at, content)"
-                     "  VALUES (?,?,now(),?)")
-          sql (tmpl/render-string tmpl {:table table})
-          sqlv  [sql eid txid value]]
+(defmethod -apply-fact :db/add
+  [conn txid [type eid attr val]]
+  (let [table (attrs/normalize-attrname attr "user")
+        tmpl  (str "INSERT INTO {{table}} "
+                   "  (eid, txid, modified_at, content)"
+                   "  VALUES (?,?,now(),?)")
+        sql (tmpl/render-string tmpl {:table table})]
+    (sc/execute conn [sql eid txid value])))
+
+
+(defmethod -apply-fact :db/retract
+  [conn txid [type eid attr val]]
+  (let [table (attrs/normalize-attrname attr "user")
+        tmpl  (str "UPDATE {{table}} SET content = ? modified_at = now() "
+                   " WHERE eid = ?")
+        sql   (tmpl/render-string tmpl {:table table})
+        sqlv  [sql value eid]]
       (sc/execute conn sqlv))))
+
 
 (deftype RetractOperation [partition eid attr value]
   IOperation
   (-execute [_ conn txid]
-    (let [table (attrs/-normalized-name attr partition)
-          tmpl  (str "UPDATE {{table}} SET content = ? modified_at = now() "
-                     " WHERE eid = ?")
-          sql   (tmpl/render-string tmpl {:table table})
-          sqlv  [sql value eid]]
-      (sc/execute conn sqlv))))
 
 ;; (deftype DropOperation [partition attr value]
 ;;   IOperation
