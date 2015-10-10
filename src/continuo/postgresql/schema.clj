@@ -18,10 +18,6 @@
             [continuo.postgresql.attributes :as attrs]
             [continuo.postgresql.types :as types]))
 
-(comment
-  (ct/run-schema! db [[:db/add :user/username {:unique true :type :text}]
-                      [:db/drop :user/name]]))
-
 (defmulti -execute-schema
   "A polymorphic abstraction for build appropiate
   layout transformation sql for the schema fact."
@@ -51,12 +47,13 @@
 
 (defn run-schema
   [context schema]
-  (let [ops (map (partial compile-op context) schema)
-        conn (.-connection context)]
+  (let [conn (.-connection context)]
     (ct/atomic conn
       (let [txid (tx/get-next-txid conn)]
         (run! #(apply -execute-schema conn %) schema)
-        (-execute-transact conn txid schema))
+        (-execute-transact conn txid schema)))))
 
+;; (comment
+;;   (ct/run-schema! db [[:db/add :user/username {:unique true :type :text}]
+;;                       [:db/drop :user/name]]))
 
-      (run! (fn [op] (-execute op conn)) ops))))
