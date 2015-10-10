@@ -24,6 +24,9 @@
 ;; Transaction Identifier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO: use uuid1 instead incremental. That will allow reduce  contension on the
+;; txlog table.
+
 (defn get-last-txid
   "Get the last tx identifier it if exists or return nil."
   [conn]
@@ -54,88 +57,66 @@
   (ct/transact db [[:db/add eid attrname attrvalue]
                    [:db/retract eid attrname attrvalue]]))
 
-(defmulti -apply-fact
-  (fn [_ _ [type]]
-    type))
+(defn- current-attr-value
+  "Get the current attribute value in the database. It
+  returns `nil` in case of the attr does not has value."
+  [conn [_ eid attr val]]
+  (let [table (attrs/normalize-attrname attr "user")
+        tmpl (str "SELECT * FROM {{table}} "
+                  "  WHERE eid=?")
+        sql  (tmpl/render-string tmpl {:table table})]
+    (sc/fetch-one conn [sql eid])))
+
+(defmulti -apply-fact (fn [_ _ [type]] type))
 
 (defmethod -apply-fact :db/add
-  [conn txid [type eid attr val]]
+  [conn txid [type eid attr val :as fact]]
   (let [table (attrs/normalize-attrname attr "user")
-        tmpl  (str "INSERT INTO {{table}} "
-                   "  (eid, txid, modified_at, content)"
-                   "  VALUES (?,?,now(),?)")
-        sql (tmpl/render-string tmpl {:table table})]
-    (sc/execute conn [sql eid txid value])))
-
+        current-value (current-value conn fact)]
+    (if current-value
+      (when (not= current-value val)
+        (let [tmpl (str "UPDATE TABLE {{table}} "
+                        "  SET modified_at=current_timestamp, "
+                        "      content=?, txid=?"
+                        "  WHERE eid=?")
+              sql (tmpl/render-string tmpl {:table table})]
+          (sc/execute conn [sql val txid eid])))
+      (let [tmpl  (str "INSERT INTO {{table}} "
+                       "  (eid, txid, modified_at, content)"
+                       "  VALUES (?,?,current_timestamp,?)")
+            sql (tmpl/render-string tmpl {:table table})]
+        (sc/execute conn [sql eid txid val])))))
 
 (defmethod -apply-fact :db/retract
   [conn txid [type eid attr val]]
   (let [table (attrs/normalize-attrname attr "user")
-        tmpl  (str "UPDATE {{table}} SET content = ? modified_at = now() "
-                   " WHERE eid = ?")
+        tmpl  "DELETE FROM {{table}} WHERE eid = ? AND content = ?"
         sql   (tmpl/render-string tmpl {:table table})
-        sqlv  [sql value eid]]
+        sqlv  [sql eid value]]
       (sc/execute conn sqlv))))
 
-
-(deftype RetractOperation [partition eid attr value]
-  IOperation
-  (-execute [_ conn txid]
-
-;; (deftype DropOperation [partition attr value]
-;;   IOperation
-;;   (-execute [_ conn txid]
-;;     (let [table (attrs/-normalized-name attr partition)
-;;           tmpl  "DELTE FROM {{table}} WHERE eid = ?"
-;;           sql   (tmpl/render-string tmpl {:table table})
-;;           sqlv  [sql eid]]
-;;       (sc/execute conn sqlv))))
-
-(deftype TxOperation [partition data]
-  IOperation
-  (-execute [_ conn txid]
-    (let [sql ["INSERT INTO txlog (id, part, facts) VALUES (?,?,?)"
-               txid partition data]]
-      (sc/execute conn sql))))
-
-(defn compile-fact
-  "Given a destructured fact, returns a ready to execute
-  operation instance.
-  The operation consists on correctly insert the data in
-  the appropiate default materialized view."
-  [context partition [op eid attrname value]]
-  ;; resolve-attr :: context -> string -> Attribute
-  (let [attr (attrs/resolve-attr context attrname)]
-    (case op
-      :db/add (AddOperation. partition eid attr value)
-      :db/retract (RetractOperation. partition eid attr value))))
-      ;; :db/drop (DropOperation. partition eid attr value))))
-
-(defn compile-txop
-  [context [partition facts]]
-  (TxOperation. partition (codecs/data->bytes facts)))
-
-(defn compile-ops
-  [context partition facts]
-  (let [txop (compile-txop context [partition facts])
-        inops (mapv (partial compile-fact context partition) facts)]
-    (into [txop] inops)))
+(defn -apply-tx
+  [conn txid facts]
+  (let [sql (str "INSERT INTO txtlog (id, part, facts, created_at) "
+                 " VALUES (?,'user',?,current_timestamp)")
+        data (codecs/data->bytes facts)]
+    (sc/execute conn [sql txid data])))
 
 (defn run-tx
   "Given an connection and seq of operation objects,
   execute them in serie."
-  [conn operations]
+  [conn facts]
   (let [txid (get-next-txid conn)]
-    (run! #(-execute % conn txid) operations))
+    (-apply-tx conn txid facts)
+    (run! #(-apply-fact conn txid %) facts)))
 
 (defn run-in-tx
-  [conn func]
+  [conn continuation]
   (sc/atomic conn
-    ;; TODO: exclusive share lock
-    (func conn)))
+    (hold-lock conn)
+    (continuation conn)))
 
 (defn transact
   [context facts]
-  (let [ops (compile-ops context "user" facts)
-        conn (.-connection context)]
-    (run-in-tx conn #(run-tx % ops))))
+  (let [conn (.-connection context)]
+    (run-in-tx conn #(run-tx % facts))))
