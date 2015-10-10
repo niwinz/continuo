@@ -31,7 +31,7 @@
     (normalize-attrname it partition)))
 
 (defn normalize-attrname
-  [^clojure.lang.Named attr partition]
+  [attr partition]
   (let [ns (namespace attr)
         nm (name attr)]
     (str/lower (str partition "_" ns "__" nm))))
