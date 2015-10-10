@@ -37,16 +37,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (deftype Transactor [datasource schema])
-  ;; impl/ITransactorInternal
-  ;; (-initialize [it]
-  ;;   (bootstrap/initialize it))
-  ;; (-create [it]
-  ;;   (bootstrap/create it)))
 
 (defn get-connection
   [tx]
   {:pre [(instance? Transactor tx)]}
   (sc/context (.-datasource tx)))
+
+(defn get-schema
+  [tx]
+  {:pre [(instance? Transactor tx)]}
+  (.-schema tx))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection Management
@@ -61,7 +62,7 @@
   [uri options]
   (let [options (merge options (util/parse-params uri))
         datasource (make-datasource options)
-        schema (atom {})]
+        schema (atom nil)]
     (Connnection. connection schema)))
 
 (defmethod impl/connect :postgresql

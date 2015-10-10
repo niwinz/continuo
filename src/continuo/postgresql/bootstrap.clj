@@ -37,22 +37,32 @@
 (def ^:static
   bootstrap-sql-file "persistence/postgresql/bootstrap.sql")
 
+
+(defn create'
+  [conn]
+  (when-not (installed? conn)
+    (let [sql (slurp (io/resouce bootstrap-sql-file))]
+      (sc/execute conn sql))))
+
 (defn create
   [tx]
-  (letfn [(createfn [conn]
-            (when-not (installed? conn)
-              (let [sql (slurp (io/resouce bootstrap-sql-file))]
-                (sc/execute conn sql))))]
-    (sc/atomic-apply conn createfn)))
+  (exec/submit #(let [conn (conn/get-connection tx)]
+                  (sc/atomic-apply conn create'))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Database Initialization
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn initialize
-  [conn]
-  ;; TODO
+(defn initialize'
+  [conn schema]
+  ;; TODO: populate schema into local schema atom.
   )
+
+(defn initialize
+  [tx]
+  (let [conn (conn/get-connection tx)
+        schema (conn/get-schema tx)]
+    (exec/submit (fn [] (sc/atomic-apply #(initialize' % schema))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Type Extend
