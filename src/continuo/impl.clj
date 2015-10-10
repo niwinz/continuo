@@ -13,7 +13,9 @@
 ;; limitations under the License.
 
 (ns continuo.impl
-  "Internal api.")
+  "Internal api."
+  (:require [promissum.core :as p]
+            [cats.core :as m]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Protocols
@@ -25,16 +27,16 @@
   (-initialize [_] "Execute initial operations.")
   (-create [_] "Create the databaase."))
 
-(defprotocol ITransactor
-  (-entity [_ eid] "Get a dynamic map that represents an entity id.")
-  (-transact [_ data] "Register a transaction.")
-  (-query [_ spec] "Query the database.")
-  (-pull [_ spec entity] "Pull a entity from the database."))
+;; (defprotocol ITransactor
+;;   (-entity [_ eid] "Get a dynamic map that represents an entity id.")
+;;   (-transact [_ data] "Register a transaction.")
+;;   (-query [_ spec] "Query the database.")
+;;   (-pull [_ spec entity] "Pull a entity from the database."))
 
-(defprotocol ISchemaTransactor
-  (-get-schema-snapshot [_] "Get the current schema representationas data structure.")
-  (-get-schema-log [_] "Get the schema transaction log.")
-  (-run-schema [_ s] "Execute the schema manipulation commands."))
+;; (defprotocol ISchemaTransactor
+;;   (-get-schema-snapshot [_] "")
+;;   (-get-schema-log [_] "Get the schema transaction log.")
+;;   (-run-schema [_ s] "Execute the schema manipulation commands."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internal Api
@@ -46,10 +48,10 @@
 
 (defn open
   [^URI uri options]
-  (let [conn (connect uri options)]
+  (m/mlet [conn (connect uri options)]
     (-initialize conn)))
 
 (defn create
   [^URI uri options]
-  (let [conn (connect uri options)]
+  (m/mlet [conn (connect uri options)]
     (-bootstrap conn)))

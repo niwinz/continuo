@@ -14,8 +14,9 @@
 
 (ns continuo.postgresql.bootstrap
   (:require [suricatta.core :as sc]
-            [hikari-cp.core :refer hikari]
-            [continuo.executor :as exec]))
+            [continuo.executor :as exec]
+            [continuo.impl :as impl]
+            [continuo.postgresql.connection :as conn]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Database Creation
@@ -25,54 +26,39 @@
   [conn tablename]
   (let [sql (format "SELECT to_regclass('public.%s')" tablename)
         rst (sc/fetch-one conn sql)]
-    (boolean (first rst))))
+    (seq rst)))
 
 (defn- installed?
   "Check if the main database layour is already installed."
   [conn]
-  (every (partial check conn) ["txlog", "properties", "schemaview", "entity"]))
+  (every (partial table-installed? conn)
+         ["txlog", "properties", "schemaview", "entity"]))
 
-(defn create'
-  [conn]
-  (when-not (installed? conn)
-    (let [bsql (slurp (io/resource "persistence/postgresql/bootstrap.sql"))]
-      (sc/execute conn bsql))))
+(def ^:static
+  bootstrap-sql-file "persistence/postgresql/bootstrap.sql")
 
 (defn create
-  [context]
-  (let [conn (.-connection context)]
-    (exec/submit #(sc/atomic-apply ctx create'))))
+  [tx]
+  (letfn [(createfn [conn]
+            (when-not (installed? conn)
+              (let [sql (slurp (io/resouce bootstrap-sql-file))]
+                (sc/execute conn sql))))]
+    (sc/atomic-apply conn createfn)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Database Initialization
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn initialize
-  [context]
+  [conn]
   ;; TODO
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Connection Management
+;; Type Extend
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def ^{:private true
-       :static true}
-  +defaults+
-  {:connection-timeout 30000
-   :idle-timeout 600000
-   :max-lifetime 1800000
-   :minimum-idle 10
-   :maximum-pool-size  10
-   :adapter "postgresql"
-   :server-name "localhost"
-   :port-number 5432})
-
-(defn connect'
-  [options]
-  (let [options (merge +defaults+ options)]
-    (sc/context (hikari/make-datasource options))))
-
-(defn connect
-  [options]
-  (exec/submit #(connect' options)))
+(extend continuo.postgresql.connection.Transactor
+  impl/ITransactorInternal
+  {:-initialize initialize
+   :-create create})

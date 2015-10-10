@@ -13,31 +13,7 @@
 ;; limitations under the License.
 
 (ns continuo.postgresql
-  "A postgresql transactor engine."
-  (:require [promissum.core :as p]
-            [suricatta.core :as sc]
-            [continuo.impl :as impl]
-            [continuo.util :as util]
-            [continuo.postgresql.bootstrap :as bootstrap]))
+  "A postgresql transactor main namespace.")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Types
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(deftype Transactor [connection schema]
-  impl/ITransactorInternal
-  (-initialize [it]
-    (bootstrap/initialize it))
-  (-create [it]
-    (bootstrap/create it)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Connection Management
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defmethod impl/connect :postgresql
-  [uri options]
-  (let [options (merge options (util/parse-params uri))
-        connection (bootstrap/connect options)
-        schema {}]
-    (Transactor. connection schema)))
+(load "postgresql/connection")
+(load "postgresql/bootstrap")
