@@ -12,6 +12,7 @@
                  [funcool/suricatta "0.4.0-SNAPSHOT"]
                  [com.h2database/h2 "1.4.189"]
                  [org.postgresql/postgresql "9.4-1202-jdbc42"]
+                 [danlentz/clj-uuid "0.1.6"]
                  [hikari-cp "1.3.1"]
                  [cheshire "5.5.0"]
                  [com.github.spullara.mustache.java/compiler "0.9.1"]]
