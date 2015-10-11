@@ -1,3 +1,4 @@
+
 ;; Copyright 2015 Andrey Antukh <niwi@niwi.nz>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License")
@@ -48,6 +49,6 @@
   "Load a file from the class path and render
   it using mustache template."
   ([^String path]
-   (render-resource path {}))
+   (render path {}))
   ([^String path context]
    (render-string (slurp (io/resource path)) context)))

@@ -15,7 +15,8 @@
 (ns continuo.impl
   "Internal api."
   (:require [promissum.core :as p]
-            [cats.core :as m]))
+            [cats.core :as m])
+  (:import java.net.URI))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Protocols
@@ -54,4 +55,4 @@
 (defn create
   [^URI uri options]
   (m/mlet [conn (connect uri options)]
-    (-bootstrap conn)))
+    (-create conn)))

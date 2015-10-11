@@ -53,14 +53,13 @@
     (sc/execute conn sql)))
 
 (defn run-schema
-  [context schema]
-  (let [conn (.-connection context)]
-    (ct/atomic conn
+  [tx schema]
+  (let [conn (conn/-get-connection tx)]
+    (sc/atomic conn
       (let [txid (tx/get-next-txid conn)]
         (run! #(-apply-schema conn %) schema)
         (-apply-tx conn txid schema)))))
 
 ;; (comment
-;;   (ct/run-schema! db [[:db/add :user/username {:unique true :type :text}]
+;;   (sc/run-schema! db [[:db/add :user/username {:unique true :type :text}]
 ;;                       [:db/drop :user/name]]))
-

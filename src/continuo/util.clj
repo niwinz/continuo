@@ -15,7 +15,8 @@
 (ns continuo.util
   (:require [clojure.walk :refer [stringify-keys keywordize-keys]]
             [cuerdas.core :as str])
-  (:import java.net.URLDecoder))
+  (:import java.net.URLDecoder
+           java.net.URI))
 
 (defn querystring->map
   [^String querystring]
@@ -35,7 +36,7 @@
         port (.getPort uri)]
     (merge
      (-> (.getQuery uri)
-         (util/querystring->map)
+         (querystring->map)
          (keywordize-keys))
      {:host host}
      (when-not (empty? userinfo)
@@ -65,9 +66,9 @@
 (extend-protocol IURIFactory
   java.lang.String
   (->uri [s]
-    (java.net.URI/create s))
+    (URI/create s))
 
-  java.net.URI
+  URI
   (->uri [u]
     u))
 

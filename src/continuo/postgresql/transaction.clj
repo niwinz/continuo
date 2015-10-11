@@ -16,6 +16,7 @@
   (:require [suricatta.core :as sc]
             [taoensso.nippy :as nippy]
             [continuo.postgresql.attributes :as attrs]
+            [continuo.postgresql.connection :as conn]
             [continuo.util.template :as tmpl]
             [continuo.util.codecs :as codecs]
             [continuo.util.uuid :as uuid]
@@ -63,7 +64,7 @@
 (defmethod -apply-fact :db/add
   [conn txid [type eid attr val :as fact]]
   (let [table (attrs/normalize-attrname attr "user")
-        current-value (current-value conn fact)]
+        current-value (current-attr-value conn fact)]
     (if current-value
       (when (not= current-value val)
         (let [tmpl (str "UPDATE TABLE {{table}} "
@@ -83,8 +84,8 @@
   (let [table (attrs/normalize-attrname attr "user")
         tmpl  "DELETE FROM {{table}} WHERE eid = ? AND content = ?"
         sql   (tmpl/render-string tmpl {:table table})
-        sqlv  [sql eid value]]
-      (sc/execute conn sqlv))))
+        sqlv  [sql eid val]]
+      (sc/execute conn sqlv)))
 
 (defn -apply-tx
   [conn txid facts]
@@ -108,6 +109,6 @@
     (continuation conn)))
 
 (defn transact
-  [context facts]
-  (let [conn (.-connection context)]
+  [tx facts]
+  (let [conn (conn/-get-connection tx)]
     (run-in-tx conn #(run-tx % facts))))

@@ -15,7 +15,7 @@
 (ns continuo.postgresql.connection
   "A connection management."
   (:require [suricatta.core :as sc]
-            [hikari-cp.core :refer hikari]
+            [hikari-cp.core :as hikari]
             [continuo.executor :as exec]
             [continuo.util :as util]
             [continuo.impl :as impl]))
@@ -32,26 +32,24 @@
    :server-name "localhost"
    :port-number 5432})
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Types
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(deftype Transactor [datasource schema])
+(defprotocol ITrasactor
+  (-get-connection [_] "Get the database connection.")
+  (-get-schema [_] "Get the schema reference."))
 
-(defn get-connection
-  [tx]
-  {:pre [(instance? Transactor tx)]}
-  (sc/context (.-datasource tx)))
+(deftype Transactor [datasource schema]
+  ITrasactor
+  (-get-connection [_]
+    (sc/context datasource))
+  (-get-schema [_]
+    schema))
 
-(defn get-schema
-  [tx]
-  {:pre [(instance? Transactor tx)]}
-  (.-schema tx))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection Management
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn make-datasource
   [options]
@@ -63,7 +61,7 @@
   (let [options (merge options (util/parse-params uri))
         datasource (make-datasource options)
         schema (atom nil)]
-    (Connnection. connection schema)))
+    (Transactor. datasource schema)))
 
 (defmethod impl/connect :postgresql
   [uri options]
