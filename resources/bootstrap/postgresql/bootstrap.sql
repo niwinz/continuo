@@ -3,7 +3,7 @@ CREATE TYPE partition AS ENUM ('system', 'schema', 'user');
 -- A table that will store the whole transaction log
 -- of the database.
 CREATE TABLE IF NOT EXISTS txlog (
-  id bigint PRIMARY KEY,
+  id uuid PRIMARY KEY,
   part partition,
   facts bytea,
   created_at timestamptz

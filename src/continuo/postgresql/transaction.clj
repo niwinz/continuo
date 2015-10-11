@@ -18,26 +18,17 @@
             [continuo.postgresql.attributes :as attrs]
             [continuo.util.template :as tmpl]
             [continuo.util.codecs :as codecs]
+            [continuo.util.uuid :as uuid]
             [continuo.executor :as exec]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transaction Identifier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; TODO: use uuid1 instead incremental. That will allow reduce  contension on the
-;; txlog table.
-
-(defn get-last-txid
-  "Get the last tx identifier it if exists or return nil."
-  [conn]
-  (let [sql "SELECT id FROM txlog ORDER BY created_at DESC LIMIT 1"]
-    (first (sc/fetch-one conn sql))))
-
 (defn get-next-txid
   "Get a next transaction identifier."
   [conn]
-  (let [lastid (get-last-txid conn)]
-    (if (nil? lastid) 1 (inc lastid))))
+  (uuid/host-uuid))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transaction Identifier
