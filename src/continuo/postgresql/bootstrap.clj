@@ -16,6 +16,7 @@
   (:require [suricatta.core :as sc]
             [continuo.executor :as exec]
             [continuo.impl :as impl]
+            [continuo.postgresql.bootstrap :as boot]
             [continuo.postgresql.connection :as conn]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -55,6 +56,7 @@
 
 (defn initialize'
   [conn schema]
+  (boot/populate-schema conn schema)
   ;; TODO: populate schema into local schema atom.
   )
 
