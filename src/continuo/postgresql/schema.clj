@@ -12,58 +12,18 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(ns continuo.postgresql.attributes
+(ns continuo.postgresql.schema
   (:require [suricatta.core :as sc]
             [cuerdas.core :as str]
+            [continuo.postgresql.transaction :as tx]
+            [continuo.postgresql.attributes :as attrs]
+            [continuo.postgresql.connection :as conn]
+            [continuo.util.template :as tmpl]
             [continuo.util.codecs :as codecs]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Attribute SQL Generator
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defprotocol IType
-  (-sql-typename [_]))
-
-(deftype TString []
-  IType
-  (-sql-typename [_] "text"))
-
-(defn lookup-type
-  [typename]
-  {:pre [(keyword? typename)]}
-  (case typename
-    :string (TString.)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Schema Attributes
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn- prepare-schema
-  [results]
-  (reduce (fn [acc item]
-            (let [opts (codecs/bytes->data (:opts item))
-                  ident (:ident item)]
-              (assoc acc ident
-                     (assoc opts :ident ident))))
-          {}
-          results))
-
-(defn populate-chema
-  [conn schema]
-  (let [sql "SELECT ident, opts FROM dbschema"
-        res (sc/fetch conn sql)]
-    (reset! schema (prepare-schema res))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Schema Trasnactors
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn normalize-attrname
-  [attrname partition]
-  {:pre [(keyword? attrname) (string? partition)]}
-  (let [ns (namespace attrname)
-        nm (name attrname)]
-    (str/lower (str partition "_" ns "__" nm))))
 
 (defmulti -apply-schema
   "A polymorphic abstraction for build appropiate
@@ -73,8 +33,8 @@
 (defmethod -apply-schema :db/add
   [conn [op ident opts]]
   (let [tablename (attrs/normalize-attrname ident "attrs")
-        typename (-> (types/lookup-type (:type opts))
-                     (types/-sql-typename))
+        typename (-> (attrs/lookup-type (:type opts))
+                     (attrs/-sql-typename))
         sql (tmpl/render "postgresql/tmpl-schema-db-add.mustache"
                          {:name tablename :type typename})]
     (sc/execute conn [sql (codecs/data->bytes opts)])))
