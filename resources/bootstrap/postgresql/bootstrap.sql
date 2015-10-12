@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS txlog (
 
 -- A table that will store the current
 -- view of the schema.
-CREATE TABLE IF NOT EXISTS dbschema {
+CREATE TABLE IF NOT EXISTS dbschema (
   ident text PRIMARY KEY,
   opts bytea,
   created_at timestamptz,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS dbschema {
 -- A table that will store the key value properties
 -- and will be used usually for storing settings.
 CREATE TABLE IF NOT EXISTS properties (
-  key text PRIMARY KEY;
+  key text PRIMARY KEY,
   value bytea
 ) WITH (OIDS=FALSE);
 
