@@ -48,9 +48,9 @@
 ;; Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; (t/deftest facked-connect-tests
-;;   (let [tx @(impl/connect (URI. uri) {})]
-;;     (t/is (instance? Transactor tx))))
+(t/deftest facked-connect-tests
+  (let [tx @(impl/connect (URI. uri) {})]
+    (t/is (instance? Transactor tx))))
 
 (t/deftest open-not-created-database
   (try
