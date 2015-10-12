@@ -13,10 +13,14 @@
 ;; limitations under the License.
 
 (ns continuo.postgresql.bootstrap
-  (:require [suricatta.core :as sc]
+  (:require [clojure.java.io :as io]
+            [promissum.core :as p]
+            [suricatta.core :as sc]
+            [continuo.util.exceptions :refer [unwrap-exception]]
             [continuo.executor :as exec]
             [continuo.impl :as impl]
             [continuo.postgresql.bootstrap :as boot]
+            [continuo.postgresql.attributes :as attrs]
             [continuo.postgresql.connection :as conn]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -32,8 +36,8 @@
 (defn- installed?
   "Check if the main database layour is already installed."
   [conn]
-  (every (partial table-installed? conn)
-         ["txlog", "properties", "schemaview", "entity"]))
+  (every? (partial table-installed? conn)
+          ["txlog", "properties", "schemaview", "entity"]))
 
 (def ^:static
   bootstrap-sql-file "persistence/postgresql/bootstrap.sql")
@@ -42,12 +46,12 @@
 (defn create'
   [conn]
   (when-not (installed? conn)
-    (let [sql (slurp (io/resouce bootstrap-sql-file))]
+    (let [sql (slurp (io/resource bootstrap-sql-file))]
       (sc/execute conn sql))))
 
 (defn create
   [tx]
-  (exec/submit #(let [conn (conn/get-connection tx)]
+  (exec/submit #(let [conn (conn/-get-connection tx)]
                   (sc/atomic-apply conn create'))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -56,15 +60,23 @@
 
 (defn initialize'
   [conn schema]
-  (boot/populate-schema conn schema)
+  (attrs/populate-schema conn schema)
   ;; TODO: populate schema into local schema atom.
   )
 
 (defn initialize
   [tx]
-  (let [conn (conn/get-connection tx)
-        schema (conn/get-schema tx)]
-    (exec/submit (fn [] (sc/atomic-apply #(initialize' % schema))))))
+  (let [conn (conn/-get-connection tx)
+        schema (conn/-get-schema tx)]
+    (letfn [(on-error [e]
+              (if (instance? org.postgresql.util.PSQLException e)
+                (throw (ex-info "Database not initialized."
+                                {:type :error/db-not-initialized}))
+                (throw e)))
+            (do-initialize []
+              (sc/atomic-apply conn #(initialize' % schema)))]
+      (-> (exec/submit do-initialize)
+          (p/catch on-error)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Type Extend

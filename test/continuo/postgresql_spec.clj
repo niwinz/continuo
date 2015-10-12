@@ -4,6 +4,8 @@
             [continuo.core :as co]
             [continuo.impl :as impl]
             [continuo.executor :as exec]
+            [continuo.util.exceptions :refer [unwrap-exception]]
+            [continuo.postgresql.bootstrap :as boot]
             [continuo.postgresql.connection :as conn]
             [continuo.postgresql.schema :as schema])
   (:import java.net.URI))
@@ -27,7 +29,12 @@
 (deftype Transactor [schema]
   conn/ITrasactor
   (-get-connection [_] +ctx+)
-  (-get-schema [_] schema))
+  (-get-schema [_] schema)
+
+  impl/ITransactorInternal
+  (-initialize [it] (boot/initialize it))
+  (-create [it] (boot/create it)))
+
 
 (defmethod impl/connect :pgtest
   [_ _]
@@ -41,14 +48,15 @@
 ;; Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(t/deftest facked-connect-tests
-  (let [tx @(impl/connect (URI. uri) {})]
-    (t/is (instance? Transactor tx))))
+;; (t/deftest facked-connect-tests
+;;   (let [tx @(impl/connect (URI. uri) {})]
+;;     (t/is (instance? Transactor tx))))
 
-;; (t/deftest schema-internal-tests
-;;   (let [schema [[:db/add :user/username {:type :continuo/string}]
-;;                 [:db/add :user/fullname {:type :continuo/string}]
-;;                 [:db/drop :user/name]]
-;;         cschema (schema/compile-schema schema)]
-;;     (cschema (fn [sql]
-;;                (println "Executing:" sql)))))
+(t/deftest open-not-created-database
+  (try
+    @(co/open uri {})
+    (throw (ex-info "unexected" {}))
+    (catch java.util.concurrent.ExecutionException e
+      (let [e (unwrap-exception e)]
+        (t/is (instance? clojure.lang.ExceptionInfo e))
+        (t/is (= (ex-data e) {:type :error/db-not-initialized}))))))

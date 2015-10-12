@@ -56,7 +56,7 @@
           {}
           results))
 
-(defn populate-chema
+(defn populate-schema
   [conn schema]
   (let [sql "SELECT ident, opts FROM dbschema"
         res (sc/fetch conn sql)]
