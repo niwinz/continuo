@@ -17,7 +17,7 @@
             [cuerdas.core :as str]
             [continuo.postgresql.transaction :as tx]
             [continuo.postgresql.attributes :as attrs]
-            [continuo.postgresql.connection :as conn]
+            [continuo.impl :as impl]
             [continuo.util.template :as tmpl]
             [continuo.util.codecs :as codecs]))
 
@@ -54,7 +54,7 @@
 
 (defn run-schema
   [tx schema]
-  (let [conn (conn/-get-connection tx)]
+  (let [conn (impl/-get-connection tx)]
     (sc/atomic conn
       (let [txid (tx/get-next-txid conn)]
         (run! #(-apply-schema conn %) schema)

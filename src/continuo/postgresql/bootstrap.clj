@@ -20,8 +20,7 @@
             [continuo.executor :as exec]
             [continuo.impl :as impl]
             [continuo.postgresql.bootstrap :as boot]
-            [continuo.postgresql.attributes :as attrs]
-            [continuo.postgresql.connection :as conn]))
+            [continuo.postgresql.attributes :as attrs]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Database Creation
@@ -53,7 +52,7 @@
 (defn create
   [tx]
   (exec/submit
-   #(let [conn (conn/-get-connection tx)]
+   #(let [conn (impl/-get-connection tx)]
       (sc/atomic-apply conn create'))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -66,8 +65,8 @@
 
 (defn initialize
   [tx]
-  (let [conn (conn/-get-connection tx)
-        schema (conn/-get-schema tx)]
+  (let [conn (impl/-get-connection tx)
+        schema (impl/-get-schema tx)]
     (letfn [(on-error [e]
               (if (instance? org.postgresql.util.PSQLException e)
                 (throw (ex-info "Database not initialized."
@@ -77,12 +76,3 @@
               (sc/atomic-apply conn #(initialize' % schema)))]
       (-> (exec/submit do-initialize)
           (p/catch on-error)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Type Extend
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(extend continuo.postgresql.connection.Transactor
-  impl/ITransactorInternal
-  {:-initialize initialize
-   :-create create})

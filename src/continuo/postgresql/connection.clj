@@ -18,10 +18,10 @@
             [hikari-cp.core :as hikari]
             [continuo.executor :as exec]
             [continuo.util :as util]
-            [continuo.impl :as impl]))
+            [continuo.impl :as impl]
+            [continuo.postgresql.bootstrap :as boot]))
 
-(def ^{:private true
-       :static true}
+(def ^{:private true :static true}
   +defaults+
   {:connection-timeout 30000
    :idle-timeout 600000
@@ -32,20 +32,27 @@
    :server-name "localhost"
    :port-number 5432})
 
+(def ^{:private true
+       :doc "The connection to use in test transactor"}
+  +test-connection+ nil)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Types
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defprotocol ITrasactor
-  (-get-connection [_] "Get the database connection.")
-  (-get-schema [_] "Get the schema reference."))
-
 (deftype Transactor [datasource schema]
-  ITrasactor
-  (-get-connection [_]
-    (sc/context datasource))
-  (-get-schema [_]
-    schema))
+  impl/ITransactorInternal
+  (-initialize [it] (boot/initialize it))
+  (-create [it] (boot/create it))
+  (-get-connection [_] (sc/context datasource))
+  (-get-schema [_] schema))
+
+(deftype TestTransactor [connecton schema]
+  impl/ITransactorInternal
+  (-initialize [it] (boot/initialize it))
+  (-create [it] (boot/create it))
+  (-get-connection [_] connecton)
+  (-get-schema [_] schema))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection Management
@@ -66,3 +73,10 @@
 (defmethod impl/connect :postgresql
   [uri options]
   (exec/submit (partial make-connection uri options)))
+
+(defmethod impl/connect :postgresql-test
+  [uri options]
+  (let [conn +test-connection+]
+    (assert conn "Connection should exists")
+    (exec/submit
+     #(TestTransactor. conn (atom nil)))))

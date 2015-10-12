@@ -16,7 +16,7 @@
   (:require [suricatta.core :as sc]
             [taoensso.nippy :as nippy]
             [continuo.postgresql.attributes :as attrs]
-            [continuo.postgresql.connection :as conn]
+            [continuo.impl :as impl]
             [continuo.util.template :as tmpl]
             [continuo.util.codecs :as codecs]
             [continuo.util.uuid :as uuid]
@@ -110,5 +110,5 @@
 
 (defn transact
   [tx facts]
-  (let [conn (conn/-get-connection tx)]
+  (let [conn (impl/-get-connection tx)]
     (run-in-tx conn #(run-tx % facts))))

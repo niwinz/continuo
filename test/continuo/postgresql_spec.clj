@@ -23,26 +23,15 @@
   (with-open [ctx (sc/context dbspec)]
     (sc/atomic ctx
       (alter-var-root #'+ctx+ (constantly ctx))
+      (alter-var-root #'conn/+test-connection+ (constantly ctx))
       (continuation)
+      (alter-var-root #'+ctx+ (constantly nil))
+      (alter-var-root #'conn/+test-connection+ (constantly nil))
       (sc/set-rollback! ctx))))
-
-(deftype Transactor [schema]
-  conn/ITrasactor
-  (-get-connection [_] +ctx+)
-  (-get-schema [_] schema)
-
-  impl/ITransactorInternal
-  (-initialize [it] (boot/initialize it))
-  (-create [it] (boot/create it)))
-
-
-(defmethod impl/connect :pgtest
-  [_ _]
-  (exec/submit (fn [] (Transactor. (atom nil)))))
 
 (t/use-fixtures :each transaction-fixture)
 
-(def ^:static uri "pgtest://localhost/test")
+(def ^:static uri "postgresql-test://localhost/test")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tests
@@ -50,7 +39,7 @@
 
 (t/deftest facked-connect-tests
   (let [tx @(impl/connect (URI. uri) {})]
-    (t/is (instance? Transactor tx))))
+    (t/is (instance? continuo.postgresql.connection.TestTransactor tx))))
 
 (t/deftest open-not-created-database
   (try

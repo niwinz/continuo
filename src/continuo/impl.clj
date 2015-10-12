@@ -26,7 +26,9 @@
 
 (defprotocol ITransactorInternal
   (-initialize [_] "Execute initial operations.")
-  (-create [_] "Create the databaase."))
+  (-create [_] "Create the databaase.")
+  (-get-connection [_] "Get the database connection.")
+  (-get-schema [_] "Get the schema reference."))
 
 ;; (defprotocol ITransactor
 ;;   (-entity [_ eid] "Get a dynamic map that represents an entity id.")
