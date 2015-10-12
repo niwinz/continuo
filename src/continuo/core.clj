@@ -45,7 +45,7 @@
   wiil be a rejected future with an error indicating you
   that the database is already exists."
   [uri]
-  (impl/create (util/->uri uri)))
+  (impl/create (util/->uri uri) {}))
 
 (comment
   (def uri "pgsql://localhost:5432/foobar?dbname=test")

@@ -29,30 +29,32 @@
 
 (defn- table-installed?
   [conn tablename]
-  (let [sql (format "SELECT to_regclass('public.%s')" tablename)
+  (let [sql (format "SELECT to_regclass('public.%s') as regclass" tablename)
         rst (sc/fetch-one conn sql)]
-    (seq rst)))
+    (boolean (:regclass rst))))
 
 (defn- installed?
   "Check if the main database layour is already installed."
   [conn]
   (every? (partial table-installed? conn)
-          ["txlog", "properties", "schemaview", "entity"]))
+          ["txlog", "entity", "properties", "dbschema"]))
 
 (def ^:static
-  bootstrap-sql-file "persistence/postgresql/bootstrap.sql")
-
+  bootstrap-sql-file "bootstrap/postgresql/bootstrap.sql")
 
 (defn create'
   [conn]
-  (when-not (installed? conn)
+  (if (installed? conn)
+    false
     (let [sql (slurp (io/resource bootstrap-sql-file))]
-      (sc/execute conn sql))))
+      (sc/execute conn sql)
+      true)))
 
 (defn create
   [tx]
-  (exec/submit #(let [conn (conn/-get-connection tx)]
-                  (sc/atomic-apply conn create'))))
+  (exec/submit
+   #(let [conn (conn/-get-connection tx)]
+      (sc/atomic-apply conn create'))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Database Initialization

@@ -60,3 +60,9 @@
       (let [e (unwrap-exception e)]
         (t/is (instance? clojure.lang.ExceptionInfo e))
         (t/is (= (ex-data e) {:type :error/db-not-initialized}))))))
+
+(t/deftest create-database-test
+  (let [created? @(co/create uri)]
+    (t/is created?))
+  (let [created? @(co/create uri)]
+    (t/is (not created?))))
