@@ -18,8 +18,31 @@
             [continuo.postgresql.transaction :as tx]
             [continuo.postgresql.attributes :as attrs]
             [continuo.impl :as impl]
+            [continuo.executor :as exec]
             [continuo.util.template :as tmpl]
             [continuo.util.codecs :as codecs]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Schema Attributes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- rows->schema
+  [results]
+  (reduce (fn [acc item]
+            (let [opts (codecs/bytes->data (:opts item))
+                  ident (:ident opts)]
+              (assoc acc ident
+                     (assoc opts :ident ident))))
+          {}
+          results))
+
+(defn refresh-schema-data!
+  [tx]
+  (let [schema (impl/-get-schema tx)
+        conn (impl/-get-connection tx)
+        sql "SELECT ident, opts FROM dbschema"
+        res (sc/fetch conn sql)]
+    (reset! schema (rows->schema res))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Schema Trasnactors
@@ -35,31 +58,36 @@
   (let [tablename (attrs/normalize-attrname ident "attrs")
         typename (-> (attrs/lookup-type (:type opts))
                      (attrs/-sql-typename))
-        sql (tmpl/render "postgresql/tmpl-schema-db-add.mustache"
+        opts (assoc opts :ident ident)
+        sql (tmpl/render "bootstrap/postgresql/tmpl-schema-db-add.mustache"
                          {:name tablename :type typename})]
     (sc/execute conn [sql (codecs/data->bytes opts)])))
 
 (defmethod -apply-schema :db/drop
   [conn [op ident]]
   (let [tablename (attrs/normalize-attrname ident "attrs")
-        sql (tmpl/render "postgresql/tmpl-schema-db-drop.mustache"
+        sql (tmpl/render "bootstrap/postgresql/tmpl-schema-db-drop.mustache"
                          {:name tablename})]
     (sc/execute conn sql)))
 
 (defn -apply-tx
   [conn txid data]
-  (let [sql ["INSERT INTO txlog (id, part, facts) VALUES (?,?,?)"
-             txid "schema" data]]
+  (let [sql ["INSERT INTO txlog (id, part, facts) VALUES (?,?::partition,?)"
+             txid "schema" (codecs/data->bytes data)]]
     (sc/execute conn sql)))
 
 (defn run-schema
   [tx schema]
-  (let [conn (impl/-get-connection tx)]
-    (sc/atomic conn
-      (let [txid (tx/get-next-txid conn)]
-        (run! #(-apply-schema conn %) schema)
-        (-apply-tx conn txid schema)))))
+  (exec/submit
+   #(let [conn (impl/-get-connection tx)]
+      (sc/atomic conn
+        (let [txid (tx/get-next-txid conn)]
+          (run! (partial -apply-schema conn) schema)
+          (-apply-tx conn txid schema)))
+      (refresh-schema-data! tx)
+      @(impl/-get-schema tx))))
 
 ;; (comment
 ;;   (sc/run-schema! db [[:db/add :user/username {:unique true :type :text}]
 ;;                       [:db/drop :user/name]]))
+

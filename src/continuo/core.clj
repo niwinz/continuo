@@ -47,6 +47,12 @@
   [uri]
   (impl/create (util/->uri uri) {}))
 
+(defn run-schema
+  "Given an connection, run schema operations in
+  one transaction."
+  [conn schema]
+  (impl/-run-schema conn schema))
+
 (comment
   (def uri "pgsql://localhost:5432/foobar?dbname=test")
 

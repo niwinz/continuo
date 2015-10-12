@@ -27,8 +27,7 @@
 (defprotocol ITransactorInternal
   (-initialize [_] "Execute initial operations.")
   (-create [_] "Create the databaase.")
-  (-get-connection [_] "Get the database connection.")
-  (-get-schema [_] "Get the schema reference."))
+  (-get-connection [_] "Get the database connection."))
 
 ;; (defprotocol ITransactor
 ;;   (-entity [_ eid] "Get a dynamic map that represents an entity id.")
@@ -36,10 +35,9 @@
 ;;   (-query [_ spec] "Query the database.")
 ;;   (-pull [_ spec entity] "Pull a entity from the database."))
 
-;; (defprotocol ISchemaTransactor
-;;   (-get-schema-snapshot [_] "")
-;;   (-get-schema-log [_] "Get the schema transaction log.")
-;;   (-run-schema [_ s] "Execute the schema manipulation commands."))
+(defprotocol ISchemaTransactor
+  (-get-schema [_] "Get the schema reference.")
+  (-run-schema [_ s] "Execute the schema manipulation commands."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internal Api

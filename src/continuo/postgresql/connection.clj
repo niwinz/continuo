@@ -19,7 +19,8 @@
             [continuo.executor :as exec]
             [continuo.util :as util]
             [continuo.impl :as impl]
-            [continuo.postgresql.bootstrap :as boot]))
+            [continuo.postgresql.bootstrap :as boot]
+            [continuo.postgresql.schema :as schema]))
 
 (def ^{:private true :static true}
   +defaults+
@@ -45,14 +46,20 @@
   (-initialize [it] (boot/initialize it))
   (-create [it] (boot/create it))
   (-get-connection [_] (sc/context datasource))
-  (-get-schema [_] schema))
+
+  impl/ISchemaTransactor
+  (-get-schema [_] schema)
+  (-run-schema [it s] (schema/run-schema it s)))
 
 (deftype TestTransactor [connecton schema]
   impl/ITransactorInternal
   (-initialize [it] (boot/initialize it))
   (-create [it] (boot/create it))
   (-get-connection [_] connecton)
-  (-get-schema [_] schema))
+
+  impl/ISchemaTransactor
+  (-get-schema [_] schema)
+  (-run-schema [it s] (schema/run-schema it s)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection Management

@@ -41,24 +41,3 @@
   {:pre [(keyword? typename)]}
   (case typename
     :string (TString.)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Schema Attributes
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn- prepare-schema
-  [results]
-  (reduce (fn [acc item]
-            (let [opts (codecs/bytes->data (:opts item))
-                  ident (:ident item)]
-              (assoc acc ident
-                     (assoc opts :ident ident))))
-          {}
-          results))
-
-(defn populate-schema
-  [conn schema]
-  (let [sql "SELECT ident, opts FROM dbschema"
-        res (sc/fetch conn sql)]
-    (reset! schema (prepare-schema res))))
-

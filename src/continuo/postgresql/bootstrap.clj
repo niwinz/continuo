@@ -20,6 +20,7 @@
             [continuo.executor :as exec]
             [continuo.impl :as impl]
             [continuo.postgresql.bootstrap :as boot]
+            [continuo.postgresql.schema :as schema]
             [continuo.postgresql.attributes :as attrs]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -53,15 +54,12 @@
   [tx]
   (exec/submit
    #(let [conn (impl/-get-connection tx)]
-      (sc/atomic-apply conn create'))))
+      (sc/atomic-apply conn create')
+      tx)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Database Initialization
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn initialize'
-  [conn schema]
-  (attrs/populate-schema conn schema))
 
 (defn initialize
   [tx]
@@ -73,6 +71,7 @@
                                 {:type :error/db-not-initialized}))
                 (throw e)))
             (do-initialize []
-              (sc/atomic-apply conn #(initialize' % schema)))]
+              (schema/refresh-schema-data! tx)
+              tx)]
       (-> (exec/submit do-initialize)
           (p/catch on-error)))))

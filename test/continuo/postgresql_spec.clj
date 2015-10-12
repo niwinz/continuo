@@ -1,5 +1,6 @@
 (ns continuo.postgresql-spec
   (:require [clojure.test :as t]
+            [promissum.core :as p]
             [suricatta.core :as sc]
             [continuo.core :as co]
             [continuo.impl :as impl]
@@ -55,3 +56,11 @@
     (t/is created?))
   (let [created? @(co/create uri)]
     (t/is (not created?))))
+
+(t/deftest apply-schema-test
+  (let [schema [[:db/add :user/username {:type :string}]]
+        _      (p/await (co/create uri))
+        conn   (p/await (co/open uri))
+        result (p/await (co/run-schema conn schema))]
+    (t/is (= result
+             {:user/username {:type :string, :ident :user/username}}))))
