@@ -60,9 +60,7 @@
 
 (defn initialize'
   [conn schema]
-  (attrs/populate-schema conn schema)
-  ;; TODO: populate schema into local schema atom.
-  )
+  (attrs/populate-schema conn schema))
 
 (defn initialize
   [tx]
