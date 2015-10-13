@@ -53,6 +53,12 @@
   [conn schema]
   (impl/-run-schema conn schema))
 
+(defn get-schema
+  "Get the current schema."
+  [conn]
+  (let [schema (impl/-get-schema conn)]
+    (set (vals @schema))))
+
 (comment
   (def uri "pgsql://localhost:5432/foobar?dbname=test")
 
