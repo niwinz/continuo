@@ -6,6 +6,7 @@
             [continuo.impl :as impl]
             [continuo.executor :as exec]
             [continuo.util.exceptions :refer [unwrap-exception]]
+            [continuo.postgresql.transaction :as tx]
             [continuo.postgresql.bootstrap :as boot]
             [continuo.postgresql.connection :as conn]
             [continuo.postgresql.schema :as schema])
@@ -64,3 +65,19 @@
         result (p/await (co/run-schema conn schema))]
     (t/is (= result
              {:user/username {:type :string, :ident :user/username}}))))
+
+(t/deftest mkeid-handling-test
+  (binding [tx/*eid-map* (volatile! {})]
+    (let [r1 (tx/mkeid 1)
+          r2 (tx/mkeid 2)
+          r3 (tx/mkeid 1)]
+      (t/is (= (impl/-resolve-eid r1)
+               (impl/-resolve-eid r1)))
+      (t/is (= (impl/-resolve-eid r1)
+               (impl/-resolve-eid r3)))
+      (t/is (not= (impl/-resolve-eid r2)
+                  (impl/-resolve-eid r3))))))
+;; (t/deftest simple-transact-with-tmpeid
+;;   (p/await (co/create uri))
+;;   (let [conn (p/await (co/open uri))]
+
