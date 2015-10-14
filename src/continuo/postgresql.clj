@@ -13,7 +13,6 @@
 ;; limitations under the License.
 
 (ns continuo.postgresql
-  "A postgresql transactor main namespace.")
-
-(load "postgresql/connection")
-(load "postgresql/bootstrap")
+  "A postgresql transactor main namespace."
+  (:require [continuo.postgresql.connection]
+            [continuo.postgresql.bootstrap]))
