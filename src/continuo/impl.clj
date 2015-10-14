@@ -37,6 +37,9 @@
   IEntityId
   (-resolve-eid [this] this))
 
+(defprotocol ITransactor
+  (-transact [_ fact] "Register a transaction."))
+
 ;; (defprotocol ITransactor
 ;;   (-entity [_ eid] "Get a dynamic map that represents an entity id.")
 ;;   (-transact [_ data] "Register a transaction.")
