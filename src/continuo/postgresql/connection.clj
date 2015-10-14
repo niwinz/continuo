@@ -20,6 +20,7 @@
             [continuo.util :as util]
             [continuo.impl :as impl]
             [continuo.postgresql.bootstrap :as boot]
+            [continuo.postgresql.transaction :as tx]
             [continuo.postgresql.schema :as schema]))
 
 (def ^{:private true :static true}
@@ -47,6 +48,10 @@
   (-create [it] (boot/create it))
   (-get-connection [_] (sc/context datasource))
 
+  impl/ITransactor
+  (-transact [it facts]
+    (tx/transact it facts))
+
   impl/ISchemaTransactor
   (-get-schema [_] schema)
   (-run-schema [it s] (schema/run-schema it s)))
@@ -56,6 +61,10 @@
   (-initialize [it] (boot/initialize it))
   (-create [it] (boot/create it))
   (-get-connection [_] connecton)
+
+  impl/ITransactor
+  (-transact [it facts]
+    (tx/transact it facts))
 
   impl/ISchemaTransactor
   (-get-schema [_] schema)
