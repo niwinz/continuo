@@ -23,13 +23,32 @@
             [continuo.executor :as exec]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Transaction Identifier
+;; Transactions & Identifiers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn get-next-txid
   "Get a next transaction identifier."
   [conn]
   (uuid/host-uuid))
+
+(def ^:dynamic *eid-map* nil)
+
+(defn mkeid
+  ([]
+   (let [val (uuid/v1)]
+     (reify
+       impl/IEntityId
+       (-resolve-eid [_]
+         val))))
+  ([index]
+   (reify
+     impl/IEntityId
+     (-resolve-eid [_]
+       (vswap! *eid-map* (fn [map]
+                           (if (get map index)
+                             map
+                             (assoc map index (uuid/v1)))))
+       (get @*eid-map* index)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transaction Identifier
