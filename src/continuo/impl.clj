@@ -16,7 +16,8 @@
   "Internal api."
   (:require [promissum.core :as p]
             [cats.core :as m])
-  (:import java.net.URI))
+  (:import java.net.URI
+           java.util.UUID))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Protocols
@@ -28,6 +29,12 @@
   (-initialize [_] "Execute initial operations.")
   (-create [_] "Create the databaase.")
   (-get-connection [_] "Get the database connection."))
+
+(defprotocol IEntityId
+  (-resolve-eid [_] "Get proper uuid."))
+
+(extend-type UUID
+  (-resolve-eid [this] this))
 
 ;; (defprotocol ITransactor
 ;;   (-entity [_ eid] "Get a dynamic map that represents an entity id.")
