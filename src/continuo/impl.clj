@@ -34,6 +34,7 @@
   (-resolve-eid [_] "Get proper uuid."))
 
 (extend-type UUID
+  IEntityId
   (-resolve-eid [this] this))
 
 ;; (defprotocol ITransactor
