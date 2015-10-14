@@ -51,7 +51,7 @@
        (get @*eid-map* index)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Transaction Identifier
+;; Locks
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn hold-lock
@@ -83,20 +83,24 @@
 (defmethod -apply-fact :db/add
   [conn txid [type eid attr val :as fact]]
   (let [table (attrs/normalize-attrname attr "user")
+        eid (impl/-resolve-eid eid)
         current-value (current-attr-value conn fact)]
     (if current-value
-      (when (not= current-value val)
-        (let [tmpl (str "UPDATE TABLE {{table}} "
-                        "  SET modified_at=current_timestamp, "
-                        "      content=?, txid=?"
-                        "  WHERE eid=?")
-              sql (tmpl/render-string tmpl {:table table})]
-          (sc/execute conn [sql val txid eid])))
-      (let [tmpl  (str "INSERT INTO {{table}} "
-                       "  (eid, txid, modified_at, content)"
-                       "  VALUES (?,?,current_timestamp,?)")
+      (do
+        (when (not= current-value val)
+          (let [tmpl (str "UPDATE TABLE {{table}} "
+                          "  SET modified_at=current_timestamp, "
+                          "      content=?, txid=?"
+                          "  WHERE eid=?")
+                sql (tmpl/render-string tmpl {:table table})]
+            (sc/execute conn [sql val txid eid])))
+        eid)
+      (let [tmpl (str "INSERT INTO {{table}} "
+                      "  (eid, txid, modified_at, content)"
+                      "  VALUES (?,?,current_timestamp,?)")
             sql (tmpl/render-string tmpl {:table table})]
-        (sc/execute conn [sql eid txid val])))))
+        (sc/execute conn [sql eid txid val])
+        eid))))
 
 (defmethod -apply-fact :db/retract
   [conn txid [type eid attr val]]
@@ -113,21 +117,20 @@
         data (codecs/data->bytes facts)]
     (sc/execute conn [sql txid data])))
 
-(defn run-tx
+(defn run-transaction
   "Given an connection and seq of operation objects,
   execute them in serie."
   [conn facts]
-  (let [txid (get-next-txid conn)]
-    (-apply-tx conn txid facts)
-    (run! #(-apply-fact conn txid %) facts)))
-
-(defn run-in-tx
-  [conn continuation]
-  (sc/atomic conn
-    (hold-lock conn)
-    (continuation conn)))
+  (binding [*eid-map* (volatile! {})]
+    (let [txid (get-next-txid conn)]
+      (-apply-tx conn txid facts)
+      (let [ids (reduce #(conj %1 (-apply-fact conn txid %)) facts)]
+        (filterv identity ids)))))
 
 (defn transact
   [tx facts]
-  (let [conn (impl/-get-connection tx)]
-    (run-in-tx conn #(run-tx % facts))))
+  (exec/submit
+   #(let [conn (impl/-get-connection tx)]
+      (sc/atomic conn
+        (hold-lock conn)
+        (run-transaction conn facts)))))
