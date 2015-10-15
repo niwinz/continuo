@@ -77,6 +77,7 @@
                (impl/-resolve-eid r3)))
       (t/is (not= (impl/-resolve-eid r2)
                   (impl/-resolve-eid r3))))))
+
 ;; (t/deftest simple-transact-with-tmpeid
 ;;   (p/await (co/create uri))
 ;;   (let [conn (p/await (co/open uri))]

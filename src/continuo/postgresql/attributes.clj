@@ -32,12 +32,17 @@
 (defprotocol IType
   (-sql-typename [_]))
 
-(deftype TString []
-  IType
-  (-sql-typename [_] "text"))
+(def ^:private string-type
+  (reify IType
+    (-sql-typename [_] "text")))
+
+(def ^:private integer-type
+  (reify IType
+    (-sql-typename [_] "integer")))
 
 (defn lookup-type
   [typename]
   {:pre [(keyword? typename)]}
   (case typename
-    :string (TString.)))
+    :string string-type
+    :integer integer-type))
