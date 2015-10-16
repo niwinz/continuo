@@ -15,7 +15,8 @@
 (ns continuo.impl
   "Internal api."
   (:require [promissum.core :as p]
-            [cats.core :as m])
+            [cats.core :as m]
+            [continuo.util.uuid :as uuid])
   (:import java.net.URI
            java.util.UUID))
 
@@ -49,6 +50,29 @@
 (defprotocol ISchemaTransactor
   (-get-schema [_] "Get the schema reference.")
   (-run-schema [_ s] "Execute the schema manipulation commands."))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Entity ID mapper
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:dynamic *eid-map* nil)
+
+(defn mkeid
+  ([]
+   (let [val (uuid/host-uuid)]
+     (reify
+       IEntityId
+       (-resolve-eid [_]
+         val))))
+  ([index]
+   (reify
+     IEntityId
+     (-resolve-eid [_]
+       (vswap! *eid-map* (fn [map]
+                           (if (get map index)
+                             map
+                             (assoc map index (uuid/host-uuid)))))
+       (get @*eid-map* index)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internal Api

@@ -31,25 +31,6 @@
   [conn]
   (uuid/host-uuid))
 
-(def ^:dynamic *eid-map* nil)
-
-(defn mkeid
-  ([]
-   (let [val (uuid/host-uuid)]
-     (reify
-       impl/IEntityId
-       (-resolve-eid [_]
-         val))))
-  ([index]
-   (reify
-     impl/IEntityId
-     (-resolve-eid [_]
-       (vswap! *eid-map* (fn [map]
-                           (if (get map index)
-                             map
-                             (assoc map index (uuid/host-uuid)))))
-       (get @*eid-map* index)))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Locks
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
