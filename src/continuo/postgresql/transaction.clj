@@ -56,6 +56,7 @@
   (let [table (attrs/normalize-attrname attr "user")
         tmpl (str "SELECT * FROM {{table}} "
                   "  WHERE eid=?")
+        eid (impl/-resolve-eid eid)
         sql  (tmpl/render-string tmpl {:table table})]
     (sc/fetch-one conn [sql eid])))
 
