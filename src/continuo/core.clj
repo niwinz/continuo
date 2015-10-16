@@ -59,6 +59,15 @@
   (let [schema (impl/-get-schema conn)]
     (set (vals @schema))))
 
+(defn transact
+  [conn facts]
+  (impl/-transact conn facts))
+
+(defn mkeid
+  ([] (impl/mkeid))
+  ([index] (impl/mkeid index)))
+
+
 (comment
   (def uri "pgsql://localhost:5432/foobar?dbname=test")
 
