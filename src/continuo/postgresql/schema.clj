@@ -55,7 +55,7 @@
 
 (defmethod -apply-schema :db/add
   [conn [op ident opts]]
-  (let [tablename (attrs/normalize-attrname ident "attrs")
+  (let [tablename (attrs/normalize-attrname ident "user")
         typename (-> (attrs/lookup-type (:type opts))
                      (attrs/-sql-typename))
         opts (assoc opts :ident ident)
@@ -65,7 +65,7 @@
 
 (defmethod -apply-schema :db/drop
   [conn [op ident]]
-  (let [tablename (attrs/normalize-attrname ident "attrs")
+  (let [tablename (attrs/normalize-attrname ident "user")
         sql (tmpl/render "bootstrap/postgresql/tmpl-schema-db-drop.mustache"
                          {:name tablename})]
     (sc/execute conn sql)))
