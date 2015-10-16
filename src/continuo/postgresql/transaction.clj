@@ -80,8 +80,10 @@
       (let [tmpl (str "INSERT INTO {{table}} "
                       "  (eid, txid, modified_at, content)"
                       "  VALUES (?,?,current_timestamp,?)")
-            sql (tmpl/render-string tmpl {:table table})]
-        (sc/execute conn [sql eid txid val])
+            sql1 (tmpl/render-string tmpl {:table table})
+            sql2 "INSERT INTO entity_attrs (eid, attr) VALUES (?, ?)"]
+        (sc/execute conn [sql1 eid txid val])
+        (sc/execute conn [sql2 eid (pr-str attr)])
         eid))))
 
 (defmethod -apply-fact :db/retract
@@ -89,13 +91,19 @@
   (let [table (attrs/normalize-attrname attr "user")
         tmpl  "DELETE FROM {{table}} WHERE eid = ? AND content = ?"
         sql   (tmpl/render-string tmpl {:table table})
+        eid (impl/-resolve-eid eid)
         sqlv  [sql eid val]]
-      (sc/execute conn sqlv)))
+    (when (pos? (sc/execute conn sqlv))
+      (let [sql (str "DELETE FROM entity_attrs"
+                     " WHERE eid=? AND attr=?")]
+        (sc/execute conn [sql eid (pr-str attr)])))
+    nil))
 
 (defn -apply-tx
   [conn txid facts]
-  (let [sql (str "INSERT INTO txtlog (id, part, facts, created_at) "
+  (let [sql (str "INSERT INTO txlog (id, part, facts, created_at) "
                  " VALUES (?,'user',?,current_timestamp)")
+        facts (mapv #(update % 1 impl/-resolve-eid) facts)
         data (codecs/data->bytes facts)]
     (sc/execute conn [sql txid data])))
 
@@ -103,11 +111,11 @@
   "Given an connection and seq of operation objects,
   execute them in serie."
   [conn facts]
-  (binding [*eid-map* (volatile! {})]
+  (binding [impl/*eid-map* (volatile! {})]
     (let [txid (get-next-txid conn)]
       (-apply-tx conn txid facts)
-      (let [ids (reduce #(conj %1 (-apply-fact conn txid %)) facts)]
-        (filterv identity ids)))))
+      (let [ids (mapv #(-apply-fact conn txid %) facts)]
+        (set (filterv identity ids))))))
 
 (defn transact
   [tx facts]
