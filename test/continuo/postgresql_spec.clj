@@ -5,6 +5,7 @@
             [continuo.core :as co]
             [continuo.impl :as impl]
             [continuo.executor :as exec]
+            [continuo.util.uuid :as uuid]
             [continuo.util.exceptions :refer [unwrap-exception]]
             [continuo.postgresql.transaction :as tx]
             [continuo.postgresql.bootstrap :as boot]
@@ -107,7 +108,23 @@
                  [:db/add (co/mkeid 1) :foo/baz 67]
                  [:db/retract (co/mkeid 1) :foo/baz 67]]
           res (p/await (co/transact conn facts))]
-      (println res)
       (t/is (set? res))
       (t/is (= (count res) 1)))))
+
+
+(t/deftest simple-transact-and-get-the-entity
+  (p/await (co/create uri))
+  (let [conn (p/await (co/open uri))]
+
+    ;; Create schema
+    (let [schema [[:db/add :foo/bar {:type :string}]
+                  [:db/add :foo/baz {:type :integer}]]]
+      (p/await (co/run-schema conn schema)))
+
+    (let [eid (uuid/host-uuid)
+          facts [[:db/add eid :foo/bar "hello world"]
+                 [:db/add eid :foo/baz 67]]
+          _      (p/await (co/transact conn facts))
+          entity (p/await (co/entity conn eid))]
+      (println 222 entity))))
 

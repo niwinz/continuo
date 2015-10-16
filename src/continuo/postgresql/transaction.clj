@@ -13,7 +13,9 @@
 ;; limitations under the License.
 
 (ns continuo.postgresql.transaction
-  (:require [suricatta.core :as sc]
+  (:require [clojure.edn :as edn]
+            [cuerdas.core :as str]
+            [suricatta.core :as sc]
             [taoensso.nippy :as nippy]
             [continuo.postgresql.attributes :as attrs]
             [continuo.impl :as impl]
@@ -42,12 +44,8 @@
      (sc/execute conn sql))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Facts processing
+;; Transactions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(comment
-  (ct/transact db [[:db/add eid attrname attrvalue]
-                   [:db/retract eid attrname attrvalue]]))
 
 (defn- current-attr-value
   "Get the current attribute value in the database. It
@@ -124,3 +122,47 @@
       (sc/atomic conn
         (hold-lock conn)
         (run-transaction conn facts)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Entity Retrieval
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- get-attributes
+  [conn eid]
+  (let [sql (str "SELECT attr FROM entity_attrs"
+                 " WHERE eid = ?")]
+    (mapv (fn [record]
+            (edn/read-string (:attr record)))
+          (sc/fetch conn [sql eid]))))
+
+(defn- make-query-sql
+  [attr]
+  (let [table (attrs/normalize-attrname attr "user")
+        tmpl  (str "(SELECT eid, content FROM {{table}}"
+                   " WHERE eid=?)")]
+    (tmpl/render-string tmpl {:table table})))
+
+(defn get-entity
+  [conn eid]
+  (let [eid (impl/-resolve-eid eid)
+        attrs (get-attributes conn eid)
+        queries (map make-query-sql attrs)
+        sql (str/join " UNION ALL " queries)
+        sqlvec (apply vector sql (take (count attrs) (repeat eid)))
+        result (sc/fetch conn sqlvec)]
+    (loop [attrs attrs
+           records result
+           result {:eid eid}]
+      (let [attr (first attrs)
+            record (first records)]
+        (if attr
+          (recur (rest attrs)
+                 (rest records)
+                 (assoc result attr (:content record)))
+          result)))))
+
+(defn entity
+  [tx eid]
+  (exec/submit
+   #(let [conn (impl/-get-connection tx)]
+      (get-entity conn eid))))

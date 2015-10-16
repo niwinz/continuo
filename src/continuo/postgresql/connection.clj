@@ -51,6 +51,8 @@
   impl/ITransactor
   (-transact [it facts]
     (tx/transact it facts))
+  (-entity [it eid]
+    (tx/entity it eid))
 
   impl/ISchemaTransactor
   (-get-schema [_] schema)
@@ -65,6 +67,8 @@
   impl/ITransactor
   (-transact [it facts]
     (tx/transact it facts))
+  (-entity [it eid]
+    (tx/entity it eid))
 
   impl/ISchemaTransactor
   (-get-schema [_] schema)
