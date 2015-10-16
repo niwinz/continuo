@@ -1,6 +1,6 @@
 CREATE TABLE {{ name }} (
   eid uuid PRIMARY KEY,
-  txid bigint,
+  txid uuid,
   created_at timestamptz default now(),
   modified_at timestamptz,
   content {{ type }}
