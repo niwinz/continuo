@@ -67,6 +67,9 @@
   ([] (impl/mkeid))
   ([index] (impl/mkeid index)))
 
+(defn entity
+  [conn eid]
+  (impl/-entity conn eid))
 
 (comment
   (def uri "pgsql://localhost:5432/foobar?dbname=test")
