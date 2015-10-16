@@ -18,22 +18,6 @@ CREATE TABLE IF NOT EXISTS dbschema (
   modified_at timestamptz
 ) WITH (OIDS=FALSE);
 
--- A table that will store the key value properties
--- and will be used usually for storing settings.
-CREATE TABLE IF NOT EXISTS properties (
-  key text PRIMARY KEY,
-  value bytea
-) WITH (OIDS=FALSE);
-
--- A table that will stores all the entities
-CREATE TABLE IF NOT EXISTS entity (
-  id uuid PRIMARY KEY,
-  part partition,
-  attributes bytea,
-  created_at timestamptz,
-  modified_at timestamptz
-) WITH (OIDS=FALSE);
-
 -- A table that tracks the attributes associated
 -- with an entity.
 CREATE TABLE IF NOT EXISTS entity_attrs (
