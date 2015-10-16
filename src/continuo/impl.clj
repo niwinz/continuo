@@ -39,10 +39,10 @@
   (-resolve-eid [this] this))
 
 (defprotocol ITransactor
-  (-transact [_ fact] "Register a transaction."))
+  (-transact [_ fact] "Register a transaction.")
+  (-entity [_ eid] "Get a entity by eid."))
 
 ;; (defprotocol ITransactor
-;;   (-entity [_ eid] "Get a dynamic map that represents an entity id.")
 ;;   (-transact [_ data] "Register a transaction.")
 ;;   (-query [_ spec] "Query the database.")
 ;;   (-pull [_ spec entity] "Pull a entity from the database."))
