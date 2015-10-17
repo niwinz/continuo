@@ -37,7 +37,7 @@
   "Check if the main database layour is already installed."
   [conn]
   (every? (partial table-installed? conn)
-          ["txlog", "entity", "properties", "dbschema"]))
+          ["txlog", "dbschema"]))
 
 (def ^:static
   bootstrap-sql-file "bootstrap/postgresql/bootstrap.sql")
