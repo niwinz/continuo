@@ -142,23 +142,59 @@
                    " WHERE eid=?)")]
     (tmpl/render-string tmpl {:table table})))
 
+
+"SELECT t1.eid, t1.content, t2.content, t3.content FROM foo_foo AS t1
+  INNER JOIN foo_bar AS t2 ON (t1.eid = t2.eid)
+  INNER JOIN foo_baz AS t3 ON (t1.eid = t3.eid)
+  WHERE eid = ?"
+
+
+(defn columns-sql
+  [attrs]
+  (reduce (fn [acc [index attr]]
+            (let [field (str "t" index ".content AS f" index)]
+              (str acc ", " field)))
+          "t0.eid"
+          (map-indexed vector attrs)))
+
+(defn join-sql
+  [attrs]
+  (let [attrs (map-indexed vector attrs)
+        [index attr] (first attrs)
+        table (attrs/normalize-attrname attr "user")
+        alias (str "t" index)
+        tmpl (str "{{table}} AS {{alias}}")
+        initial (tmpl/render-string tmpl {:table table :alias alias})]
+    (reduce (fn [acc [index attr]]
+              (let [table (attrs/normalize-attrname attr "user")
+                    alias (str "t" index)
+                    prevalias (str "t" (dec index))
+                    tmpl (str " INNER JOIN {{table}} AS {{alias}}"
+                              " ON ({{prevalias}}.eid = {{alias}}.eid)")]
+                (str acc (tmpl/render-string tmpl {:table table
+                                                   :alias alias
+                                                   :prevalias prevalias}))))
+            initial (rest attrs))))
+
 (defn get-entity
   [conn eid]
   (let [eid (impl/-resolve-eid eid)
         attrs (get-attributes conn eid)
-        queries (map make-query-sql attrs)
-        sql (str/join " UNION ALL " queries)
-        sqlvec (apply vector sql (take (count attrs) (repeat eid)))
-        result (sc/fetch conn sqlvec)]
+        columns-sql (columns-sql attrs)
+        join-sql (join-sql attrs)
+        sqltmpl "SELECT {{columns}} FROM {{join}} WHERE t0.eid=?"
+        sql (tmpl/render-string sqltmpl {:columns columns-sql
+                                         :join join-sql})
+        result (sc/fetch-one conn [sql eid] {:format :row})]
     (loop [attrs attrs
-           records result
+           values (rest result)
            result {:eid eid}]
       (let [attr (first attrs)
-            record (first records)]
+            value (first values)]
         (if attr
           (recur (rest attrs)
-                 (rest records)
-                 (assoc result attr (:content record)))
+                 (rest values)
+                 (assoc result attr value))
           result)))))
 
 (defn entity

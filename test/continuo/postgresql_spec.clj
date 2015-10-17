@@ -126,5 +126,5 @@
                  [:db/add eid :foo/baz 67]]
           _      (p/await (co/transact conn facts))
           entity (p/await (co/entity conn eid))]
-      (println 222 entity))))
-
+      (t/is (= (:foo/bar entity) "hello world"))
+      (t/is (= (:foo/baz entity) 67)))))
