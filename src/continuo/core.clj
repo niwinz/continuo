@@ -15,7 +15,7 @@
 (ns continuo.core
   "Event source based persistence."
   (:require [continuo.impl :as impl]
-            [continuo.util :as util]))
+            [continuo.util.uri :as uri]))
 
 (defn open
   "Given an uri and optionally a options hash-map,
@@ -30,9 +30,9 @@
   and other similar things that are not related
   to the connection parameters."
   ([uri]
-   (impl/open (util/->uri uri) {}))
+   (impl/open (uri/-coerce uri) {}))
   ([uri options]
-   (impl/open (util/->uri uri) options)))
+   (impl/open (uri/-coerce uri) options)))
 
 (defn create
   "Given an uri, initializes the initial database
@@ -45,7 +45,7 @@
   wiil be a rejected future with an error indicating you
   that the database is already exists."
   [uri]
-  (impl/create (util/->uri uri) {}))
+  (impl/create (uri/-coerce uri) {}))
 
 (defn run-schema
   "Given an connection, run schema operations in

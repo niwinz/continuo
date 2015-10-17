@@ -24,3 +24,17 @@
   "Deserialize bytes into clojure data structures."
   [input]
   (nippy/thaw input))
+
+(defn str->bytes
+  "Convert string to java bytes array"
+  ([^String s]
+   (str->bytes s "UTF-8"))
+  ([^String s, ^String encoding]
+   (.getBytes s encoding)))
+
+(defn bytes->str
+  "Convert octets to String."
+  ([^bytes data]
+   (bytes->str data "UTF-8"))
+  ([^bytes data, ^String encoding]
+   (String. data encoding)))

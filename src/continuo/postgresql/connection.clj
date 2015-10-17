@@ -17,7 +17,7 @@
   (:require [suricatta.core :as sc]
             [hikari-cp.core :as hikari]
             [continuo.executor :as exec]
-            [continuo.util :as util]
+            [continuo.util.uri :as uri]
             [continuo.impl :as impl]
             [continuo.postgresql.bootstrap :as boot]
             [continuo.postgresql.transaction :as tx]
@@ -86,7 +86,7 @@
 
 (defn make-connection
   [uri options]
-  (let [options (merge options (util/parse-params uri))
+  (let [options (merge options (uri/parse-params uri))
         datasource (make-datasource options)
         schema (atom nil)]
     (Transactor. datasource schema)))
