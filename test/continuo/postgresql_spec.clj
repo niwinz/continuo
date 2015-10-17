@@ -23,7 +23,7 @@
 
 (defn transaction-fixture
   [continuation]
-  (with-open [ctx (sc/context dbspec)]
+  (with-open [ctx (sc/context dbspec {:isolation-level :serializable})]
     (sc/atomic ctx
       (alter-var-root #'+ctx+ (constantly ctx))
       (alter-var-root #'conn/+test-connection+ (constantly ctx))

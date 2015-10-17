@@ -46,7 +46,8 @@
   impl/ITransactorInternal
   (-initialize [it] (boot/initialize it))
   (-create [it] (boot/create it))
-  (-get-connection [_] (sc/context datasource))
+  (-get-connection [_] (sc/context datasource
+                           {:isolation-level :serializable}))
 
   impl/ITransactor
   (-transact [it facts]
