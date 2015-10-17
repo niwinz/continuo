@@ -62,15 +62,15 @@
 
 (defn initialize
   [tx]
-  (let [conn (impl/-get-connection tx)
-        schema (impl/-get-schema tx)]
-    (letfn [(on-error [e]
-              (if (instance? org.postgresql.util.PSQLException e)
-                (throw (ex-info "Database not initialized."
-                                {:type :error/db-not-initialized}))
-                (throw e)))
-            (do-initialize []
-              (schema/refresh-schema-data! tx)
-              tx)]
-      (-> (exec/submit do-initialize)
-          (p/catch on-error)))))
+  (with-open [conn (impl/-get-connection tx)]
+    (let [schema (impl/-get-schema tx)]
+      (letfn [(on-error [e]
+                (if (instance? org.postgresql.util.PSQLException e)
+                  (throw (ex-info "Database not initialized."
+                                  {:type :error/db-not-initialized}))
+                  (throw e)))
+              (do-initialize []
+                (schema/refresh-schema-data! tx)
+                tx)]
+        (-> (exec/submit do-initialize)
+            (p/catch on-error))))))
