@@ -53,7 +53,7 @@
 (defn create
   [tx]
   (exec/submit
-   #(let [conn (impl/-get-connection tx)]
+   #(with-open [conn (impl/-get-connection tx)]
       (sc/atomic-apply conn create'))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
