@@ -23,17 +23,6 @@
             [continuo.postgresql.transaction :as tx]
             [continuo.postgresql.schema :as schema]))
 
-(def ^{:private true :static true}
-  +defaults+
-  {:connection-timeout 30000
-   :idle-timeout 600000
-   :max-lifetime 1800000
-   :minimum-idle 10
-   :maximum-pool-size  10
-   :adapter "postgresql"
-   :server-name "localhost"
-   :port-number 5432})
-
 (def ^{:private true
        :doc "The connection to use in test transactor"}
   +test-connection+ nil)
@@ -59,34 +48,45 @@
   (-get-schema [_] schema)
   (-run-schema [it s] (schema/run-schema it s)))
 
-(deftype TestTransactor [connecton schema]
-  impl/ITransactorInternal
-  (-initialize [it] (boot/initialize it))
-  (-create [it] (boot/create it))
-  (-get-connection [_] connecton)
-
-  impl/ITransactor
-  (-transact [it facts]
-    (tx/transact it facts))
-  (-entity [it eid]
-    (tx/entity it eid))
-
-  impl/ISchemaTransactor
-  (-get-schema [_] schema)
-  (-run-schema [it s] (schema/run-schema it s)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection Management
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def ^{:private true :static true}
+  +defaults+
+  {:connection-timeout 30000
+   :idle-timeout 600000
+   :max-lifetime 1800000
+   :minimum-idle 0
+   :maximum-pool-size 10
+   :adapter "postgresql"
+   :server-name "localhost"
+   :port-number 5432})
+
 (defn make-datasource
   [options]
-  (let [options (merge +defaults+ options)]
-    (hikari/make-datasource options)))
+  (letfn [(mergefn [resultv newv]
+            (if (empty newv)
+              resultv
+              newv))]
+    (let [options (merge-with mergefn +defaults+ options)]
+      (hikari/make-datasource options))))
+
+(defn parse-uri
+  [uri]
+  (let [uridata (uri/parse uri)]
+    (merge
+     {:database-name (:path uridata)
+      :port-number (:port uridata)
+      :server-name (:host uridata)
+      :username (:username uridata)
+      :password (:password uridata)}
+     (:params uridata))))
 
 (defn make-connection
   [uri options]
-  (let [options (merge options (uri/parse-params uri))
+  (let [options (merge (parse-uri uri) options)
         datasource (make-datasource options)
         schema (atom nil)]
     (Transactor. datasource schema)))
