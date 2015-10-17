@@ -17,24 +17,18 @@
 ;; Fixtures & Initialization
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def +ctx+)
+(def ^:static uri "postgresql://localhost:5432/test")
 (def dbspec {:subprotocol "postgresql"
              :subname "//127.0.0.1/test"})
 
 (defn transaction-fixture
   [continuation]
-  (with-open [ctx (sc/context dbspec {:isolation-level :serializable})]
-    (sc/atomic ctx
-      (alter-var-root #'+ctx+ (constantly ctx))
-      (alter-var-root #'conn/+test-connection+ (constantly ctx))
-      (continuation)
-      (alter-var-root #'+ctx+ (constantly nil))
-      (alter-var-root #'conn/+test-connection+ (constantly nil))
-      (sc/set-rollback! ctx))))
+  (with-open [conn (sc/context dbspec)]
+    (sc/execute conn "drop schema if exists public cascade;")
+    (sc/execute conn "create schema public;"))
+  (continuation))
 
 (t/use-fixtures :each transaction-fixture)
-
-(def ^:static uri "postgresql-test://localhost/test")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tests
@@ -42,7 +36,7 @@
 
 (t/deftest facked-connect-tests
   (let [tx @(impl/connect (URI. uri) {})]
-    (t/is (instance? continuo.postgresql.connection.TestTransactor tx))))
+    (t/is (instance? continuo.postgresql.connection.Transactor tx))))
 
 (t/deftest open-not-created-database
   (try
