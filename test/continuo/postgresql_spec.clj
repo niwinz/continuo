@@ -111,7 +111,6 @@
       (t/is (set? res))
       (t/is (= (count res) 1)))))
 
-
 (t/deftest simple-transact-with-doble-add
   (p/await (co/create uri))
   (let [conn (p/await (co/open uri))]
@@ -128,7 +127,6 @@
           entity (p/await (co/entity conn eid))]
       (t/is (= (:eid entity) eid))
       (t/is (= (:foo/bar entity) "hola mundo")))))
-
 
 (t/deftest simple-transact-and-get-the-entity
   (p/await (co/create uri))
