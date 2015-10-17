@@ -142,13 +142,6 @@
                    " WHERE eid=?)")]
     (tmpl/render-string tmpl {:table table})))
 
-
-"SELECT t1.eid, t1.content, t2.content, t3.content FROM foo_foo AS t1
-  INNER JOIN foo_bar AS t2 ON (t1.eid = t2.eid)
-  INNER JOIN foo_baz AS t3 ON (t1.eid = t3.eid)
-  WHERE eid = ?"
-
-
 (defn columns-sql
   [attrs]
   (reduce (fn [acc [index attr]]
