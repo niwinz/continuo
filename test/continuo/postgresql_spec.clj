@@ -112,6 +112,24 @@
       (t/is (= (count res) 1)))))
 
 
+(t/deftest simple-transact-with-doble-add
+  (p/await (co/create uri))
+  (let [conn (p/await (co/open uri))]
+
+    ;; Create schema
+    (let [schema [[:db/add :foo/bar {:type :string}]
+                  [:db/add :foo/baz {:type :integer}]]]
+      (p/await (co/run-schema conn schema)))
+
+    (let [eid (uuid/host-uuid)
+          facts [[:db/add eid :foo/bar "hello world"]
+                 [:db/add eid :foo/bar "hola mundo"]]
+          _      (p/await (co/transact conn facts))
+          entity (p/await (co/entity conn eid))]
+      (t/is (= (:eid entity) eid))
+      (t/is (= (:foo/bar entity) "hola mundo")))))
+
+
 (t/deftest simple-transact-and-get-the-entity
   (p/await (co/create uri))
   (let [conn (p/await (co/open uri))]
@@ -126,5 +144,6 @@
                  [:db/add eid :foo/baz 67]]
           _      (p/await (co/transact conn facts))
           entity (p/await (co/entity conn eid))]
+      (t/is (= (:eid entity) eid))
       (t/is (= (:foo/bar entity) "hello world"))
       (t/is (= (:foo/baz entity) 67)))))

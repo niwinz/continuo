@@ -68,7 +68,7 @@
     (if current-value
       (do
         (when (not= current-value val)
-          (let [tmpl (str "UPDATE TABLE {{table}} "
+          (let [tmpl (str "UPDATE {{table}} "
                           "  SET modified_at=current_timestamp, "
                           "      content=?, txid=?"
                           "  WHERE eid=?")
