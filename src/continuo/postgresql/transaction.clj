@@ -25,20 +25,17 @@
             [continuo.executor :as exec]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Transactions & Identifiers
+;; Constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn get-next-txid
-  "Get a next transaction identifier."
-  [conn]
-  (uuid/host-uuid))
+(def ^:private ^:dynamic *max-retries* 1024)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Locks
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn hold-lock
-  ([conn] (hold-lock conn "txlog"))
+(defn hold-exclusive-lock
+  ([conn] (hold-exclusive-lock conn "txlog"))
   ([conn tablename]
    (as-> (format "LOCK TABLE %s IN ACCESS EXCLUSIVE MODE" tablename) sql
      (sc/execute conn sql))))
@@ -99,29 +96,61 @@
 
 (defn -apply-tx
   [conn txid facts]
-  (let [sql (str "INSERT INTO txlog (id, part, facts, created_at) "
-                 " VALUES (?,'user',?,current_timestamp)")
+  (let [sql (str "INSERT INTO txlog (id, facts, created_at) "
+                 " VALUES (?,?,current_timestamp)")
         facts (mapv #(update % 1 impl/-resolve-eid) facts)
         data (codecs/data->bytes facts)]
     (sc/execute conn [sql txid data])))
 
-(defn run-transaction
+(defn get-next-txid
+  "Get a next transaction identifier."
+  [conn]
+  (uuid/host-uuid))
+
+(defn- run-transaction
   "Given an connection and seq of operation objects,
   execute them in serie."
   [conn facts]
-  (binding [impl/*eid-map* (volatile! {})]
-    (let [txid (get-next-txid conn)]
-      (-apply-tx conn txid facts)
-      (let [ids (mapv #(-apply-fact conn txid %) facts)]
-        (set (filterv identity ids))))))
+  (sc/atomic conn
+    (binding [impl/*eid-map* (volatile! {})]
+      (let [txid (get-next-txid conn)]
+        (-apply-tx conn txid facts)
+        (let [ids (mapv #(-apply-fact conn txid %) facts)]
+          (set (filterv identity ids)))))))
+
+(defn- is-serialization-failure?
+  [error]
+  (let [cause (.getCause error)]
+    (and (instance? org.postgresql.util.PSQLException cause)
+         (= (.getSQLState cause) "40001"))))
+
+(defn- try-transact
+  [tx facts]
+  (with-open [conn (impl/-get-connection tx)]
+    (try
+      [::ok (run-transaction conn facts)]
+      (catch Exception e
+        (if (is-serialization-failure? e)
+          [::repeat e]
+          [::error e])))))
 
 (defn transact
   [tx facts]
-  (exec/submit
-   #(let [conn (impl/-get-connection tx)]
-      (sc/atomic conn
-        (hold-lock conn)
-        (run-transaction conn facts)))))
+  (let [tx-name (gensym "tx-")
+        max-retries *max-retries*]
+    (exec/submit
+     #(loop [current-try 1]
+        ;; (locking #'is-serialization-failure?
+        ;;   (println (format "Running a transaction %s, try %s of %s"
+        ;;                    tx-name current-try (inc retries))))
+        (let [[state value] (try-transact tx facts)]
+          (if (identical? state ::repeat)
+            (if (<= current-try max-retries)
+              (recur (inc current-try))
+              (throw value))
+            (if (identical? state ::error)
+              (throw value)
+              value)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Entity Retrieval
