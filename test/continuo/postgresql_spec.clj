@@ -91,7 +91,6 @@
     (let [facts [[:db/add (co/mkeid 1) :foo/bar "hello world"]
                  [:db/add (co/mkeid 1) :foo/baz 67]]
           res (p/await (co/transact conn facts))]
-      (println res)
       (t/is (set? res))
       (t/is (= (count res) 1)))))
 

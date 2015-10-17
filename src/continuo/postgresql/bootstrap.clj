@@ -54,8 +54,7 @@
   [tx]
   (exec/submit
    #(let [conn (impl/-get-connection tx)]
-      (sc/atomic-apply conn create')
-      tx)))
+      (sc/atomic-apply conn create'))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Database Initialization
