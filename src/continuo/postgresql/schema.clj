@@ -79,6 +79,7 @@
 
 (defn run-schema
   [tx schema]
+  {:pre [(not (empty? schema))]}
   (exec/submit
    #(let [conn (impl/-get-connection tx)]
       (sc/atomic conn
