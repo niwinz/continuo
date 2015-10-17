@@ -81,15 +81,10 @@
   [tx schema]
   {:pre [(not (empty? schema))]}
   (exec/submit
-   #(let [conn (impl/-get-connection tx)]
+   #(with-open [conn (impl/-get-connection tx)]
       (sc/atomic conn
         (let [txid (tx/get-next-txid conn)]
           (run! (partial -apply-schema conn) schema)
           (-apply-tx conn txid schema)))
       (refresh-schema-data! tx)
       @(impl/-get-schema tx))))
-
-;; (comment
-;;   (sc/run-schema! db [[:db/add :user/username {:unique true :type :text}]
-;;                       [:db/drop :user/name]]))
-
