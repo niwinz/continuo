@@ -37,7 +37,6 @@
   (-create [it] (boot/create it))
   (-get-connection [_] (sc/context datasource
                            {:isolation-level :serializable}))
-
   impl/ITransactor
   (-transact [it facts]
     (tx/transact it facts))
@@ -94,10 +93,3 @@
 (defmethod impl/connect :postgresql
   [uri options]
   (exec/submit (partial make-connection uri options)))
-
-(defmethod impl/connect :postgresql-test
-  [uri options]
-  (let [conn +test-connection+]
-    (assert conn "Connection should exists")
-    (exec/submit
-     #(TestTransactor. conn (atom nil)))))
