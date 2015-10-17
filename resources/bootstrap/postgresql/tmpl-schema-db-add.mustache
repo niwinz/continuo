@@ -6,5 +6,5 @@ CREATE TABLE {{ name }} (
   content {{ type }}
 ) WITH (OIDS=FALSE);
 
-INSERT INTO dbschema (ident, opts, modified_at)
-  VALUES ('{{ name }}', ?, now());
+INSERT INTO dbschema (ident, opts, created_at, modified_at)
+  VALUES ('{{ name }}', ?, current_timestamp, current_timestamp);

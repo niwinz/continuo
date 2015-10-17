@@ -4,7 +4,6 @@ CREATE TYPE partition AS ENUM ('system', 'schema', 'user');
 -- of the database.
 CREATE TABLE IF NOT EXISTS txlog (
   id uuid PRIMARY KEY,
-  part partition,
   facts bytea,
   created_at timestamptz
 ) WITH (OIDS=FALSE);

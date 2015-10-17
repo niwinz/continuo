@@ -72,9 +72,10 @@
 
 (defn -apply-tx
   [conn txid data]
-  (let [sql ["INSERT INTO txlog (id, part, facts) VALUES (?,?::partition,?)"
-             txid "schema" (codecs/data->bytes data)]]
-    (sc/execute conn sql)))
+  (let [sql (str "INSERT INTO txlog (id, facts, created_at)"
+                 " VALUES (?, ?, current_timestamp)")
+        sqlv [sql txid (codecs/data->bytes data)]]
+    (sc/execute conn sqlv)))
 
 (defn run-schema
   [tx schema]
