@@ -9,7 +9,7 @@
                  [funcool/cats "1.1.0-SNAPSHOT"]
                  [funcool/cuerdas "0.6.0"]
                  [funcool/promissum "0.4.0-SNAPSHOT"]
-                 [funcool/suricatta "0.4.0-SNAPSHOT"]
+                 [funcool/suricatta "0.5.0-SNAPSHOT"]
                  [com.h2database/h2 "1.4.189"]
                  [org.postgresql/postgresql "9.4-1202-jdbc42"]
                  [danlentz/clj-uuid "0.1.6"]
@@ -17,5 +17,4 @@
                  [cheshire "5.5.0"]
                  [com.github.spullara.mustache.java/compiler "0.9.1"]]
   :plugins [[lein-ancient "0.6.7"]])
-  ;; :profiles {:dev {:global-vars {*warn-on-reflection* false}}})
 
